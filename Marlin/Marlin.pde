@@ -42,7 +42,7 @@
 #include "lcd.h"
 //extern LiquidCrystal lcd;
 
-char version_string[] = "0.9.3";
+char version_string[] = "0.9.4E";
 
 #ifdef SDSUPPORT
 #include "SdFat.h"
@@ -1983,6 +1983,7 @@ static unsigned char busy = false; // TRUE when SIG_OUTPUT_COMPARE1A is being se
 static long acceleration_time, deceleration_time;
 static long accelerate_until, decelerate_after, acceleration_rate, initial_rate, final_rate, nominal_rate;
 static unsigned short acc_step_rate; // needed for deccelaration start point
+static char step_loops;
 
 
 
@@ -2009,6 +2010,17 @@ void st_wake_up() {
 
 inline unsigned short calc_timer(unsigned short step_rate) {
   unsigned short timer;
+  if(step_rate > 40000) { // If steprate > 40kHz >> step 4 times
+     step_rate = step_rate >> 2;
+     step_loops = 4;
+  }
+  else if(step_rate > 20000) { // If steprate > 20kHz >> step 2 times
+     step_rate = step_rate >> 1;
+     step_loops = 2;
+  }
+  else {
+     step_loops = 1;
+  }
   if(step_rate < 32) step_rate = 32;
   step_rate -= 32; // Correct for minimal speed
   if(step_rate >= (8*256)){ // higher step rate 
@@ -2024,7 +2036,7 @@ inline unsigned short calc_timer(unsigned short step_rate) {
     timer = (unsigned short)pgm_read_word_near(table_address);
     timer -= (((unsigned short)pgm_read_word_near(table_address+2) * (unsigned char)(step_rate & 0x0007))>>3);
   }
-  if(timer < 100) timer = 100;
+//  if(timer < 100) timer = 100;
   return timer;
 }
 
@@ -2150,35 +2162,38 @@ ISR(TIMER1_COMPA_vect)
       WRITE(E_DIR_PIN,!INVERT_E_DIR);
 #endif //!ADVANCE
 
-    counter_x += current_block->steps_x;
-    if (counter_x > 0) {
-      WRITE(X_STEP_PIN, HIGH);
-      counter_x -= current_block->step_event_count;
-      WRITE(X_STEP_PIN, LOW);
-    }
+    for(char i=0; i < step_loops; i++) { // Take multiple steps per interrupt (For high speed moves)
+      counter_x += current_block->steps_x;
+      if (counter_x > 0) {
+        WRITE(X_STEP_PIN, HIGH);
+        counter_x -= current_block->step_event_count;
+        WRITE(X_STEP_PIN, LOW);
+      }
 
-    counter_y += current_block->steps_y;
-    if (counter_y > 0) {
-      WRITE(Y_STEP_PIN, HIGH);
-      counter_y -= current_block->step_event_count;
-      WRITE(Y_STEP_PIN, LOW);
-    }
+      counter_y += current_block->steps_y;
+      if (counter_y > 0) {
+        WRITE(Y_STEP_PIN, HIGH);
+        counter_y -= current_block->step_event_count;
+        WRITE(Y_STEP_PIN, LOW);
+      }
 
-    counter_z += current_block->steps_z;
-    if (counter_z > 0) {
-      WRITE(Z_STEP_PIN, HIGH);
-      counter_z -= current_block->step_event_count;
-      WRITE(Z_STEP_PIN, LOW);
-    }
+      counter_z += current_block->steps_z;
+      if (counter_z > 0) {
+        WRITE(Z_STEP_PIN, HIGH);
+        counter_z -= current_block->step_event_count;
+        WRITE(Z_STEP_PIN, LOW);
+      }  
 
 #ifndef ADVANCE
-    counter_e += current_block->steps_e;
-    if (counter_e > 0) {
-      WRITE(E_STEP_PIN, HIGH);
-      counter_e -= current_block->step_event_count;
-      WRITE(E_STEP_PIN, LOW);
-    }
+      counter_e += current_block->steps_e;
+      if (counter_e > 0) {
+        WRITE(E_STEP_PIN, HIGH);
+        counter_e -= current_block->step_event_count;
+        WRITE(E_STEP_PIN, LOW);
+      }
 #endif //!ADVANCE
+      step_events_completed += 1;  
+    }
 
     // Calculare new timer value
     unsigned short timer;
@@ -2221,8 +2236,8 @@ ISR(TIMER1_COMPA_vect)
       deceleration_time += timer;
       OCR1A = timer;
     }       
+
     // If current block is finished, reset pointer 
-    step_events_completed += 1;  
     if (step_events_completed >= current_block->step_event_count) {
       current_block = NULL;
       plan_discard_current_block();
