@@ -1457,10 +1457,17 @@ inline long estimate_acceleration_distance(long initial_rate, long target_rate, 
 // deceleration in the cases where the trapezoid has no plateau (i.e. never reaches maximum speed)
 
 inline long intersection_distance(long initial_rate, long final_rate, long acceleration, long distance) {
-  return(
-  (2*acceleration*distance-initial_rate*initial_rate+final_rate*final_rate)/
-    (4*acceleration)
-    );
+    long delta = final_rate - initial_rate;
+    if (delta > 0)
+    {
+        return distance - ((distance - acceleration * delta) >> 1);
+    }
+    else if (delta < 0)
+    {
+        return (distance - acceleration * delta) >> 1;
+    }
+    
+    return distance >> 1;
 }
 
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
