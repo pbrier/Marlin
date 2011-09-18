@@ -2,6 +2,8 @@
 // This struct is used when buffering the setup for each linear movement "nominal" values are as specified in 
 // the source g-code and may never actually be reached if acceleration management is active.
 
+//#define DEBUG_STEPS
+
 
 #include "speed_lookuptable.h"
 
@@ -39,10 +41,11 @@
 #include "fastio.h"
 #include "Configuration.h"
 #include "pins.h"
+#include "Marlin.h"
+#include "speed_lookuptable.h"
 #include "lcd.h"
-//extern LiquidCrystal lcd;
 
-char version_string[] = "0.9.3";
+char version_string[] = "U0.9.3.3-BK";
 
 #ifdef SDSUPPORT
 #include "SdFat.h"
@@ -53,6 +56,24 @@ char version_string[] = "0.9.3";
 #define CRITICAL_SECTION_END    SREG = _sreg
 #endif //CRITICAL_SECTION_START
 
+
+#if defined SDSUPPORT || defined FANCY_LCD 
+// The number of linear motions that can be in the plan at any give time.  
+  #define BLOCK_BUFFER_SIZE 16   // SD,LCD,Buttons take more memory, block buffer needs to be smaller
+#else
+  #define BLOCK_BUFFER_SIZE 40 // maximize block buffer
+#endif
+
+#ifdef SIMPLE_LCD
+  #define BLOCK_BUFFER_SIZE 32 // A little less buffer for just a simple LCD
+#endif
+
+// if DEBUG_STEPS is enabled, M114 can be used to compare two methods of determining the X,Y,Z position of the printer.
+// for debugging purposes only, should be disabled by default
+#ifdef DEBUG_STEPS
+volatile long count_position[NUM_AXIS] = { 0, 0, 0, 0};
+volatile int count_direction[NUM_AXIS] = { 1, 1, 1, 1};
+#endif
 // look here for descriptions of gcodes: http://linuxcnc.org/handbook/gcode/g-code.html
 // http://objects.reprap.org/wiki/Mendel_User_Manual:_RepRapGCodes
 
@@ -172,6 +193,8 @@ unsigned long previous_millis_cmd = 0;
 unsigned long max_inactive_time = 0;
 unsigned long stepper_inactive_time = 0;
 
+unsigned long starttime=0;
+unsigned long stoptime=0;
 #ifdef SDSUPPORT
 Sd2Card card;
 SdVolume volume;
@@ -223,14 +246,14 @@ inline void write_command(char *buf){
 }
 #endif //SDSUPPORT
 
-
 void setup()
 { 
+	
   Serial.begin(BAUDRATE);
   Serial.print("Marlin ");
   Serial.println(version_string);
   Serial.println("start");
-#ifdef FANCY_LCD
+#if defined FANCY_LCD || defined SIMPLE_LCD
   lcd_init();
 #endif
   for(int i = 0; i < BUFSIZE; i++){
@@ -359,7 +382,60 @@ void setup()
   plan_init();  // Initialize planner;
   st_init();    // Initialize stepper;
 //  tp_init();    // Initialize temperature loop
+	checkautostart();
 }
+
+#ifdef SDSUPPORT
+void checkautostart()
+{
+	if(!sdactive)
+		return;
+	static int lastnr=0;
+	char autoname[30];
+	sprintf(autoname,"auto%i.g",lastnr);
+	for(int i=0;i<strlen(autoname);i++)
+		autoname[i]=tolower(autoname[i]);
+	dir_t p;
+
+	root.rewind();
+	char filename[11];
+	int cnt=0;
+
+	bool found=false;
+	while (root.readDir(p) > 0) 
+	{
+		for(int i=0;i<strlen((char*)p.name);i++)
+			p.name[i]=tolower(p.name[i]);
+		//Serial.print((char*)p.name);
+		//Serial.print(" ");
+		//Serial.println(autoname);
+		
+		if(strncmp((char*)p.name,autoname,5)==0)
+		{
+			char cmd[30];
+			
+			sprintf(cmd,"M23 %s",autoname);
+			//sprintf(cmd,"M115");
+			//enquecommand("G92 Z0");
+			//enquecommand("G1 Z10 F2000");
+			//enquecommand("G28 X-105 Y-105");
+			enquecommand(cmd);
+			enquecommand("M24");
+			found=true;
+			
+		}
+	}
+	if(!found)
+		lastnr=-1;
+	else
+		lastnr++;
+	
+}
+#else
+void checkautostart()
+{
+}
+#endif
 
 
 void loop()
@@ -500,6 +576,16 @@ inline void get_command()
       if(sdpos >= filesize){
         sdmode = false;
         Serial.println("Done printing file");
+				stoptime=millis();
+				char time[30];
+				unsigned long t=(stoptime-starttime)/1000;
+				int sec,min;
+				min=t/60;
+				sec=t%60;
+				sprintf(time,"%i min, %i sec",min,sec);
+				Serial.println(time);
+				LCD_MESSAGE(time);
+				checkautostart();
       }
       if(!serial_count) return; //if empty line
       cmdbuffer[bufindw][serial_count] = 0; //terminate string
@@ -719,6 +805,7 @@ inline void process_commands()
     case 24: //M24 - Start SD print
       if(sdactive){
         sdmode = true;
+				starttime=millis();
       }
       break;
     case 25: //M25 - Pause SD print
@@ -771,6 +858,19 @@ inline void process_commands()
       //processed in write to file routine above
       //savetosd = false;
       break;
+		case 30:
+		{
+			stoptime=millis();
+				char time[30];
+				unsigned long t=(stoptime-starttime)/1000;
+				int sec,min;
+				min=t/60;
+				sec=t%60;
+				sprintf(time,"%i min, %i sec",min,sec);
+				Serial.println(time);
+				LCD_MESSAGE(time);
+		}
+				break;
 #endif //SDSUPPORT
       case 104: // M104
         if (code_seen('S')) target_raw = temp2analog(code_value());
@@ -821,6 +921,7 @@ inline void process_commands()
             }
         #endif
         codenum = millis(); 
+				starttime=millis();
         while(current_raw < target_raw) {
           if( (millis() - codenum) > 1000 ) //Print Temp Reading every 1 second while heating up.
           {
@@ -837,10 +938,11 @@ inline void process_commands()
       #if TEMP_1_PIN > -1
         if (code_seen('S')) target_bed_raw = temp2analog(code_value());
         codenum = millis(); 
-        while(current_bed_raw < target_bed_raw) {
+        while(current_bed_raw < target_bed_raw) 
+                                {
           if( (millis()-codenum) > 1000 ) //Print Temp Reading every 1 second while heating up.
           {
-            tt=analog2temp(current_raw);
+            float tt=analog2temp(current_raw);
             Serial.print("T:");
             Serial.println( tt );
             Serial.print("ok T:");
@@ -855,16 +957,18 @@ inline void process_commands()
       break;
       case 106: //M106 Fan On
         if (code_seen('S')){
-            digitalWrite(FAN_PIN, HIGH);
+						digitalWrite(FAN_PIN,HIGH);
             analogWrite(FAN_PIN, constrain(code_value(),0,255) );
         }
         else
-            digitalWrite(FAN_PIN, HIGH);
+				{
+					digitalWrite(FAN_PIN,HIGH);
+					analogWrite(FAN_PIN, 255);
+				}
         break;
       case 107: //M107 Fan Off
+				digitalWrite(FAN_PIN,LOW);
         analogWrite(FAN_PIN, 0);
-        
-        digitalWrite(FAN_PIN, LOW);
         break;
       
     case 82:
@@ -906,8 +1010,17 @@ inline void process_commands()
       Serial.print(current_position[Y_AXIS]);
       Serial.print("Z:");
       Serial.print(current_position[Z_AXIS]);
-      Serial.print("E:");
-      Serial.println(current_position[E_AXIS]);
+      Serial.print("E:");      
+      Serial.print(current_position[E_AXIS]);
+      #ifdef DEBUG_STEPS
+        Serial.print(" Count X:");
+        Serial.print(float(count_position[X_AXIS])/axis_steps_per_unit[X_AXIS]);
+        Serial.print("Y:");
+        Serial.print(float(count_position[Y_AXIS])/axis_steps_per_unit[Y_AXIS]);
+        Serial.print("Z:");
+        Serial.println(float(count_position[Z_AXIS])/axis_steps_per_unit[Z_AXIS]);
+      #endif
+      Serial.println("");
       break;
     case 119: // M119
 #if (X_MIN_PIN > -1)
@@ -1429,9 +1542,7 @@ inline void manage_inactivity(byte debug) {
  */
 
 
-// The number of linear motions that can be in the plan at any give time
-#define BLOCK_BUFFER_SIZE 16
-#define BLOCK_BUFFER_MASK 0x0f
+
 
 static block_t block_buffer[BLOCK_BUFFER_SIZE];            // A ring buffer for motion instructions
 static volatile unsigned char block_buffer_head;           // Index of the next block to be pushed
@@ -1489,10 +1600,9 @@ void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit
   if(final_rate < 120) final_rate=120;
   
   // Calculate the acceleration steps
-  long acceleration = block->acceleration;
+  long acceleration = block->acceleration_st;
   long accelerate_steps = estimate_acceleration_distance(initial_rate, block->nominal_rate, acceleration);
   long decelerate_steps = estimate_acceleration_distance(final_rate, block->nominal_rate, acceleration);
-
   // Calculate the size of Plateau of Nominal Rate. 
   long plateau_steps = block->step_event_count-accelerate_steps-decelerate_steps;
 
@@ -1536,15 +1646,15 @@ inline float max_allowable_speed(float acceleration, float target_velocity, floa
 inline float junction_jerk(block_t *before, block_t *after) {
   return(sqrt(
     pow((before->speed_x-after->speed_x), 2)+
-    pow((before->speed_y-after->speed_y), 2)+
-    pow((before->speed_z-after->speed_z)*axis_steps_per_unit[Z_AXIS]/axis_steps_per_unit[X_AXIS], 2)));
+    pow((before->speed_y-after->speed_y), 2)));
 }
 
 // Return the safe speed which is max_jerk/2, e.g. the 
 // speed under which you cannot exceed max_jerk no matter what you do.
 float safe_speed(block_t *block) {
   float safe_speed;
-  safe_speed = max_jerk/2;  
+  safe_speed = max_xy_jerk/2;  
+  if(abs(block->speed_z) > max_z_jerk/2) safe_speed = max_z_jerk/2;
   if (safe_speed > block->nominal_speed) safe_speed = block->nominal_speed;
   return safe_speed;  
 }
@@ -1572,12 +1682,15 @@ void planner_reverse_pass_kernel(block_t *previous, block_t *current, block_t *n
     if((previous->steps_x == 0) && (previous->steps_y == 0)) {
       entry_speed = safe_speed(current);
     }
-    else if (jerk > max_jerk) {
-      entry_speed = (max_jerk/jerk) * entry_speed;
+    else if (jerk > max_xy_jerk) {
+      entry_speed = (max_xy_jerk/jerk) * entry_speed;
+    } 
+    if(abs(previous->speed_z - current->speed_z) > max_z_jerk) {
+      entry_speed = (max_z_jerk/abs(previous->speed_z - current->speed_z)) * entry_speed;
     } 
     // If the required deceleration across the block is too rapid, reduce the entry_factor accordingly.
     if (entry_speed > exit_speed) {
-      float max_entry_speed = max_allowable_speed(-acceleration,exit_speed, current->millimeters);
+      float max_entry_speed = max_allowable_speed(-current->acceleration,exit_speed, current->millimeters);
       if (max_entry_speed < entry_speed) {
         entry_speed = max_entry_speed;
       }
@@ -1597,16 +1710,16 @@ void planner_reverse_pass() {
   block_t *block[3] = {
     NULL, NULL, NULL  };
   while(block_index != block_buffer_tail) {    
-    block_index--;
-    if(block_index < 0) {
-      block_index = BLOCK_BUFFER_SIZE-1;
-    }
     block[2]= block[1];
     block[1]= block[0];
     block[0] = &block_buffer[block_index];
     planner_reverse_pass_kernel(block[0], block[1], block[2]);
+    block_index--;
+    if(block_index < 0) {
+      block_index = BLOCK_BUFFER_SIZE-1;
   }
-  planner_reverse_pass_kernel(NULL, block[0], block[1]);
+  }
+//  planner_reverse_pass_kernel(NULL, block[0], block[1]);
 }
 
 // The kernel called by planner_recalculate() when scanning the plan from first to last entry.
@@ -1620,7 +1733,7 @@ void planner_forward_pass_kernel(block_t *previous, block_t *current, block_t *n
     // speed accordingly. Remember current->entry_factor equals the exit factor of 
     // the previous block.
     if(previous->entry_speed < current->entry_speed) {
-      float max_entry_speed = max_allowable_speed(-acceleration, previous->entry_speed, previous->millimeters);
+      float max_entry_speed = max_allowable_speed(-previous->acceleration, previous->entry_speed, previous->millimeters);
       if (max_entry_speed < current->entry_speed) {
         current->entry_speed = max_entry_speed;
       }
@@ -1640,7 +1753,7 @@ void planner_forward_pass() {
     block[1] = block[2];
     block[2] = &block_buffer[block_index];
     planner_forward_pass_kernel(block[0],block[1],block[2]);
-    block_index = (block_index+1) & BLOCK_BUFFER_MASK;
+    block_index = (block_index+1) %BLOCK_BUFFER_SIZE;
   }
   planner_forward_pass_kernel(block[1], block[2], NULL);
 }
@@ -1658,7 +1771,7 @@ void planner_recalculate_trapezoids() {
     if (current) {
       calculate_trapezoid_for_block(current, current->entry_speed, next->entry_speed);      
     }
-    block_index = (block_index+1) & BLOCK_BUFFER_MASK;
+    block_index = (block_index+1) %BLOCK_BUFFER_SIZE;
   }
   calculate_trapezoid_for_block(next, next->entry_speed, safe_speed(next));
 }
@@ -1695,7 +1808,7 @@ void plan_init() {
 
 inline void plan_discard_current_block() {
   if (block_buffer_head != block_buffer_tail) {
-    block_buffer_tail = (block_buffer_tail + 1) & BLOCK_BUFFER_MASK;  
+    block_buffer_tail = (block_buffer_tail + 1) %BLOCK_BUFFER_SIZE;  
   }
 }
 
@@ -1723,7 +1836,7 @@ void check_axes_activity() {
       if(block->steps_y != 0) y_active++;
       if(block->steps_z != 0) z_active++;
       if(block->steps_e != 0) e_active++;
-      block_index = (block_index+1) & BLOCK_BUFFER_MASK;
+      block_index = (block_index+1) %BLOCK_BUFFER_SIZE;
     }
   }
   if((DISABLE_X) && (x_active == 0)) disable_x();
@@ -1746,7 +1859,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
   target[E_AXIS] = lround(e*axis_steps_per_unit[E_AXIS]);     
 
   // Calculate the buffer head after we push this byte
-  int next_buffer_head = (block_buffer_head + 1) & BLOCK_BUFFER_MASK;	
+  int next_buffer_head = (block_buffer_head + 1) %BLOCK_BUFFER_SIZE;
 
   // If the buffer is full: good! That means we are well ahead of the robot. 
   // Rest here until there is room in the buffer.
@@ -1773,6 +1886,12 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
     return; 
   };
 
+  //enable active axes
+  if(block->steps_x != 0) enable_x();
+  if(block->steps_y != 0) enable_y();
+  if(block->steps_z != 0) enable_z();
+  if(block->steps_e != 0) enable_e();
+
   float delta_x_mm = (target[X_AXIS]-position[X_AXIS])/axis_steps_per_unit[X_AXIS];
   float delta_y_mm = (target[Y_AXIS]-position[Y_AXIS])/axis_steps_per_unit[Y_AXIS];
   float delta_z_mm = (target[Z_AXIS]-position[Z_AXIS])/axis_steps_per_unit[Z_AXIS];
@@ -1782,6 +1901,15 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
   unsigned long microseconds;
   microseconds = lround((block->millimeters/feed_rate)*1000000);
   
+  // added by lampmaker to slow down when de buffer starts to empty, rather than wait at the corner for a buffer refill
+  // reduces/removes corner blobs as the machine won't come to a full stop.
+  int blockcount=block_buffer_head-block_buffer_tail;
+  //blockcount=8;
+  while(blockcount<0) blockcount+=BLOCK_BUFFER_SIZE;
+  if ((blockcount<=2)&&(microseconds<(MIN_SEGMENT_TIME))) microseconds=MIN_SEGMENT_TIME;
+  else if ((blockcount<=4)&&(microseconds<(MIN_SEGMENT_TIME/2))) microseconds=MIN_SEGMENT_TIME/2;
+  else if ((blockcount<=8)&&(microseconds<(MIN_SEGMENT_TIME/5))) microseconds=MIN_SEGMENT_TIME/5;   
+
   // Calculate speed in mm/minute for each axis
   float multiplier = 60.0*1000000.0/microseconds;
   block->speed_z = delta_z_mm * multiplier; 
@@ -1793,7 +1921,10 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
   float speed_factor = 1;
   float tmp_speed_factor;
   if(abs(block->speed_x) > max_feedrate[X_AXIS]) {
-    speed_factor = max_feedrate[X_AXIS] / abs(block->speed_x);
+    //// [ErikDeBruijn] IS THIS THE BUG WE'RE LOOING FOR????
+    // it used to be just this line: speed_factor = max_feedrate[X_AXIS] / abs(block->speed_x);
+    tmp_speed_factor = max_feedrate[X_AXIS] / abs(block->speed_x);
+    if(speed_factor > tmp_speed_factor) speed_factor = tmp_speed_factor;
   }
   if(abs(block->speed_y) > max_feedrate[Y_AXIS]){
     tmp_speed_factor = max_feedrate[Y_AXIS] / abs(block->speed_y);
@@ -1824,17 +1955,18 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
     block->acceleration = ceil( (retract_acceleration)/travel_per_step); // convert to: acceleration steps/sec^2
   }
   else {
-    block->acceleration = ceil( (acceleration)/travel_per_step);      // convert to: acceleration steps/sec^2
+    block->acceleration_st = ceil( (acceleration)/travel_per_step);      // convert to: acceleration steps/sec^2
     // Limit acceleration per axis
-    if((block->acceleration * block->steps_x / block->step_event_count) > axis_steps_per_sqr_second[X_AXIS])
-      block->acceleration = axis_steps_per_sqr_second[X_AXIS];
-    if((block->acceleration * block->steps_y / block->step_event_count) > axis_steps_per_sqr_second[Y_AXIS])
-      block->acceleration = axis_steps_per_sqr_second[Y_AXIS];
-    if((block->acceleration * block->steps_e / block->step_event_count) > axis_steps_per_sqr_second[E_AXIS])
-      block->acceleration = axis_steps_per_sqr_second[E_AXIS];
-    if((block->acceleration * block->steps_z / block->step_event_count) > axis_steps_per_sqr_second[Z_AXIS])
-      block->acceleration = axis_steps_per_sqr_second[Z_AXIS];
+    if((block->acceleration_st * block->steps_x / block->step_event_count) > axis_steps_per_sqr_second[X_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[X_AXIS];
+    if((block->acceleration_st * block->steps_y / block->step_event_count) > axis_steps_per_sqr_second[Y_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[Y_AXIS];
+    if((block->acceleration_st * block->steps_e / block->step_event_count) > axis_steps_per_sqr_second[E_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[E_AXIS];
+    if(((block->acceleration_st / block->step_event_count) * block->steps_z ) > axis_steps_per_sqr_second[Z_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS];
   }
+  block->acceleration = block->acceleration_st * travel_per_step;
 
 #ifdef ADVANCE
   // Calculate advance rate
@@ -1843,7 +1975,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
     block->advance = 0;
   }
   else {
-    long acc_dist = estimate_acceleration_distance(0, block->nominal_rate, block->acceleration);
+    long acc_dist = estimate_acceleration_distance(0, block->nominal_rate, block->acceleration_st);
     float advance = (STEPS_PER_CUBIC_MM_E * EXTRUDER_ADVANCE_K) * 
       (block->speed_e * block->speed_e * EXTRUTION_AREA * EXTRUTION_AREA / 3600.0)*65536;
     block->advance = advance;
@@ -1876,12 +2008,6 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
     block->direction_bits |= (1<<E_AXIS); 
   }
 
-  //enable active axes
-  if(block->steps_x != 0) enable_x();
-  if(block->steps_y != 0) enable_y();
-  if(block->steps_z != 0) enable_z();
-  if(block->steps_e != 0) enable_e();
-
   // Move buffer head
   block_buffer_head = next_buffer_head;     
 
@@ -1897,7 +2023,12 @@ void plan_set_position(float x, float y, float z, float e)
   position[X_AXIS] = lround(x*axis_steps_per_unit[X_AXIS]);
   position[Y_AXIS] = lround(y*axis_steps_per_unit[Y_AXIS]);
   position[Z_AXIS] = lround(z*axis_steps_per_unit[Z_AXIS]);     
-  position[E_AXIS] = lround(e*axis_steps_per_unit[E_AXIS]);     
+  position[E_AXIS] = lround(e*axis_steps_per_unit[E_AXIS]);    
+#ifdef DEBUG_STEPS
+  count_position[X_AXIS]=  position[X_AXIS];
+  count_position[Y_AXIS]=  position[Y_AXIS];
+  count_position[Z_AXIS]=  position[Z_AXIS];
+#endif
 }
 
 // Stepper
@@ -2067,6 +2198,19 @@ ISR(TIMER1_COMPA_vect)
 
   busy = true;
   sei(); // Re enable interrupts (normally disabled while inside an interrupt handler)
+#ifdef FANCY_LCD
+  static int breakdown=0;
+	if((breakdown++)%100==0)
+   buttons_check();
+/* [ErikDeBruijn] Perhaps it would be nice to use a piece of code like this (adapted from process_g_code), to create a nice progress bar!
+      if(sdactive){
+        sprintf("SD printing byte %i%",(int) (sdpos/filesize*100)); // perhaps a fraction of a percent is also nice, 0.03%, progress bar even better.
+        Serial.print(sdpos);
+        Serial.print("/");
+        Serial.println(filesize);
+      }
+*/
+#endif
 
   // If there is no current block, attempt to pop one from the buffer
   if (current_block == NULL) {
@@ -2114,32 +2258,62 @@ ISR(TIMER1_COMPA_vect)
 #endif //ADVANCE
 
     // Set direction en check limit switches
-    if ((out_bits & (1<<X_AXIS)) != 0) {   // -direction
+if ((out_bits & (1<<X_AXIS)) != 0) {   // -direction
       WRITE(X_DIR_PIN, INVERT_X_DIR);
+      #ifdef DEBUG_STEPS
+      count_direction[X_AXIS]=-1;
+      #endif
       if(READ(X_MIN_PIN) != ENDSTOPS_INVERTING) {
         step_events_completed = current_block->step_event_count;
       }
     }
-    else // +direction
-    WRITE(X_DIR_PIN,!INVERT_X_DIR);
+    else { // +direction 
+    	WRITE(X_DIR_PIN,!INVERT_X_DIR);
+        #ifdef DEBUG_STEPS
+        count_direction[X_AXIS]=1;
+        #endif
+      	if((READ(X_MAX_PIN) != ENDSTOPS_INVERTING)  && (current_block->steps_x >0)){
+        	step_events_completed = current_block->step_event_count;
+		}
+    }
 
     if ((out_bits & (1<<Y_AXIS)) != 0) {   // -direction
       WRITE(Y_DIR_PIN,INVERT_Y_DIR);
+      #ifdef DEBUG_STEPS
+      count_direction[Y_AXIS]=-1;
+      #endif
       if(READ(Y_MIN_PIN) != ENDSTOPS_INVERTING) {
         step_events_completed = current_block->step_event_count;
       }
     }
-    else // +direction
+    else { // +direction
     WRITE(Y_DIR_PIN,!INVERT_Y_DIR);
+      #ifdef DEBUG_STEPS
+      count_direction[Y_AXIS]=1;
+      #endif
+    if((READ(Y_MAX_PIN) != ENDSTOPS_INVERTING) && (current_block->steps_y >0)){
+    	step_events_completed = current_block->step_event_count;
+      }
+    }
 
     if ((out_bits & (1<<Z_AXIS)) != 0) {   // -direction
       WRITE(Z_DIR_PIN,INVERT_Z_DIR);
+      #ifdef DEBUG_STEPS
+      count_direction[Z_AXIS]=-1;
+      #endif
       if(READ(Z_MIN_PIN) != ENDSTOPS_INVERTING) {
         step_events_completed = current_block->step_event_count;
       }
     }
-    else // +direction
-    WRITE(Z_DIR_PIN,!INVERT_Z_DIR);
+    else { // +direction
+    	WRITE(Z_DIR_PIN,!INVERT_Z_DIR);
+        #ifdef DEBUG_STEPS
+        count_direction[Z_AXIS]=1;
+        #endif
+    	if((READ(Z_MAX_PIN) != ENDSTOPS_INVERTING)  && (current_block->steps_z >0)){
+        	step_events_completed = current_block->step_event_count;
+    	}
+    }
 
 #ifndef ADVANCE
     if ((out_bits & (1<<E_AXIS)) != 0)   // -direction
@@ -2153,6 +2327,9 @@ ISR(TIMER1_COMPA_vect)
       WRITE(X_STEP_PIN, HIGH);
       counter_x -= current_block->step_event_count;
       WRITE(X_STEP_PIN, LOW);
+      #ifdef DEBUG_STEPS
+      count_position[X_AXIS]+=count_direction[X_AXIS];   
+      #endif
     }
 
     counter_y += current_block->steps_y;
@@ -2160,6 +2337,9 @@ ISR(TIMER1_COMPA_vect)
       WRITE(Y_STEP_PIN, HIGH);
       counter_y -= current_block->step_event_count;
       WRITE(Y_STEP_PIN, LOW);
+      #ifdef DEBUG_STEPS
+      count_position[Y_AXIS]+=count_direction[Y_AXIS];
+      #endif
     }
 
     counter_z += current_block->steps_z;
@@ -2167,6 +2347,9 @@ ISR(TIMER1_COMPA_vect)
       WRITE(Z_STEP_PIN, HIGH);
       counter_z -= current_block->step_event_count;
       WRITE(Z_STEP_PIN, LOW);
+      #ifdef DEBUG_STEPS
+      count_position[Z_AXIS]+=count_direction[Z_AXIS];
+      #endif
     }
 
 #ifndef ADVANCE

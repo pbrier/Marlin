@@ -1,7 +1,7 @@
 #include "lcd.h"
 #include "pins.h"
 
-#ifdef FANCY_LCD
+#if defined FANCY_LCD || defined SIMPLE_LCD
 extern volatile int feedmultiply;
 
 #include <LiquidCrystal.h>
@@ -9,7 +9,10 @@ LiquidCrystal lcd(LCD_PINS_RS, LCD_PINS_ENABLE, LCD_PINS_D4, LCD_PINS_D5,LCD_PIN
 
 unsigned long previous_millis_lcd=0;
 
+
+#ifdef FANCY_LCD
 #include "buttons.h"
+#endif //FANCY_LCD
 
 #include "menu_base.h"
 
@@ -21,6 +24,7 @@ bool force_lcd_update=false;
 
 
 extern LiquidCrystal lcd;
+
 
 //return for string conversion routines
 char conv[8];
@@ -78,6 +82,7 @@ char *fillto(int8_t n,char *c)
 	
 }
 
+
 #include "menu_base.h"
 MenuBase menu;
 
@@ -104,6 +109,7 @@ void PageWatch::update()
 		lcd.print(fillto(LCD_WIDTH,messagetext));
 		messagetext[0]=0;
 	}
+#ifdef FANCY_LCD
 	if(encoderpos!=lastencoder)
 	{
 		lcd.setCursor(0,2);
@@ -115,6 +121,7 @@ void PageWatch::update()
 		lcd.print("  ");
 		lastencoder=encoderpos;
 	}
+#endif FANCY_LCD
 	static int n=0;
 	if(n++%4)
 		return; //slower updates
@@ -137,7 +144,9 @@ void PageWatch::update()
 
 void PageWatch::activate()
 {
+#ifdef FANCY_LCD
 	encoderpos=feedmultiply;
+#endif
 	lcd.setCursor(0,0);
   lcd.print(fillto(LCD_WIDTH," "));
 #if 0
@@ -177,6 +186,7 @@ void PageWatch::activate()
 	update();
 }
 
+#ifdef FANCY_LCD
 
 
 class PageMove:public MenuPage
@@ -321,6 +331,7 @@ public:
 	int fileoffset,nrfiles;
 };
 
+#define FILTERSD  if (p.name[0] == DIR_NAME_FREE) break;if (p.name[0] == DIR_NAME_DELETED || p.name[0] == '.') continue;if (!DIR_IS_FILE_OR_SUBDIR(&p)) continue;if(p.name[8]!='G')	continue;if(p.name[9]=='~')	continue;
 PageSd::PageSd()
 {
   xshift=10;items=7;firstline=0;
@@ -330,6 +341,12 @@ PageSd::PageSd()
 
 void PageSd::update()
 {
+	if(buttons&B_ST) //reset sd card
+	{
+		sdactive = false;
+		sdmode = false;
+		initsd(); 
+	}
 	if(encoderpos!=lastencoder) //scoll through files
 	{
 		fileoffset=encoderpos%nrfiles;
@@ -351,15 +368,7 @@ void PageSd::update()
 		lastencoder=encoderpos;
 		while (root.readDir(p) > 0) 
 		{
-			// done if past last used entry 
-			if (p.name[0] == DIR_NAME_FREE) break;
-
-			// skip deleted entry and entries for . and  ..
-			if (p.name[0] == DIR_NAME_DELETED || p.name[0] == '.') continue;
-
-			// only list subdirectories and files
-			if (!DIR_IS_FILE_OR_SUBDIR(&p)) continue;
-
+			FILTERSD
 			uint8_t writepos=0;
 			for (uint8_t i = 0; i < 11; i++) {
 
@@ -390,7 +399,7 @@ void PageSd::update()
 
 void PageSd::activate()
 {
-	dir_t p;
+	dir_t p;   
 
   root.rewind();
   char filename[11];
@@ -400,13 +409,11 @@ void PageSd::activate()
 	while (root.readDir(p) > 0) 
   {
     // done if past last used entry 
-    if (p.name[0] == DIR_NAME_FREE) break;
-
-    // skip deleted entry and entries for . and  ..
-    if (p.name[0] == DIR_NAME_DELETED || p.name[0] == '.') continue;
-
-    // only list subdirectories and files
-    if (!DIR_IS_FILE_OR_SUBDIR(&p)) continue;
+    FILTERSD
+		Serial.println((char*)p.name);
+		Serial.println(strlen((char*)p.name));
+		Serial.println((char)p.name[strlen((char*)p.name)-1]);
+		
 		nrfiles++;
 	}
 	root.rewind();
@@ -414,14 +421,7 @@ void PageSd::activate()
 	int precount=0;
   while (root.readDir(p) > 0) 
   {
-    // done if past last used entry 
-    if (p.name[0] == DIR_NAME_FREE) break;
-
-    // skip deleted entry and entries for . and  ..
-    if (p.name[0] == DIR_NAME_DELETED || p.name[0] == '.') continue;
-
-    // only list subdirectories and files
-    if (!DIR_IS_FILE_OR_SUBDIR(&p)) continue;
+    FILTERSD
 		if(precount++<fileoffset)
 			continue;
 		
@@ -456,13 +456,12 @@ void PageSd::activate()
 
 PageSd pagesd;
 
-#endif
-
-
-
-PageWatch pagewatch;
+#endif // SD_SUPPORT 
 PageMove pagemove;
 PageHome pagehome;
+#endif // FANCY_LCD
+PageWatch pagewatch;
+
 
 
 void lcd_status(const char* message)
@@ -476,7 +475,7 @@ void lcd_status(const char* message)
 //   if(missing>0)
 //     for(int i=0;i<missing;i++)
 //       lcd.print(" ");
-	strncpy(messagetext,message,20);
+	strncpy(messagetext,message,LCD_WIDTH);
 }
 
 long previous_millis_buttons=0;
@@ -490,19 +489,20 @@ void lcd_status()
   buttons_check();
 	buttons_process();
   previous_millis_buttons=millis();
+#endif //FANCY_LCD
   if(  ((millis() - previous_millis_lcd) < LCD_UPDATE_INTERVAL)  &&  !force_lcd_update  )
     return;
 	previous_millis_lcd=millis();
   force_lcd_update=false;
 	menu.update();
-#endif
 }
 
 void lcd_init()
 {
+#ifdef FANCY_LCD
   buttons_init();
 	beep();
-#ifdef FANCY_LCD
+#endif //FANCY LCD
   byte Degree[8] =
   {
     B01100,
@@ -530,34 +530,31 @@ void lcd_init()
   lcd.createChar(1,Degree);
   lcd.createChar(2,Thermometer);
   lcd.clear();
-  //lcd.print(fillto(20,"booting!"));
+  lcd.print(fillto(LCD_WIDTH,"booting!"));
   //lcd.setCursor(0, 1);
   //lcd.print("lets Marlin!");
-	LCD_MESSAGE(fillto(LCD_WIDTH,"Marlin ready."));
-#endif
+	LCD_MESSAGE(fillto(LCD_WIDTH,"UltiMarlin ready."));
 	menu.addMenuPage(&pagewatch);
+#ifdef FANCY_LCD
 	menu.addMenuPage(&pagemove);
 		menu.addMenuPage(&pagehome);
+#endif //FANCY_LCD
 #ifdef SDSUPPORT
 		menu.addMenuPage(&pagesd);
-#endif
-
+#endif //SDSUPPORT
 }
 
 
-
-
-
-
+#ifdef FANCY_LCD
 
 void buttons_process()
 {
 
   if(buttons&B_ST)
   {
-    Serial.println("Red");
+    //Serial.println("Red");
     blocking[BL_ST]=millis()+blocktime;
-    enquecommand("M115\n");
+    //enquecommand("M115\n");
   }
   if(buttons&B_LE)
   {
@@ -596,15 +593,21 @@ void enquecommand(const char *cmd)
   }
 }
 
+#endif // FANCY_LCD
+
 void beep()
 {
+  // [ErikDeBruijn] changed to two short beeps, more friendly
   pinMode(BEEPER,OUTPUT);
   digitalWrite(BEEPER,HIGH);
-  delay(1000);
+  delay(200);
+  digitalWrite(BEEPER,LOW);
+  delay(200);
+  digitalWrite(BEEPER,HIGH);
+  delay(200);
   digitalWrite(BEEPER,LOW);
 
 }
 
-
-
 #endif
+
