@@ -1505,7 +1505,7 @@ void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit
   }  
 
   long decelerate_after = accelerate_steps+plateau_steps;
-  long acceleration_rate = (long)((float)acceleration * 8.388608);
+  long acceleration_rate = (long)((float)acceleration * 8.388608); // 2^23 / 10^6 ???
 
   CRITICAL_SECTION_START;  // Fill variables used by the stepper in a critical section
   if(block->busy == false) { // Don't update variables if block is busy.
