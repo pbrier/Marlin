@@ -1,6 +1,5 @@
 #include "menu_base.h"
-//#include <LiquidCrystal.h>
-//extern LiquidCrystal lcd;
+
 extern "C" {
   void __cxa_pure_virtual()
   {
@@ -10,7 +9,6 @@ extern "C" {
 
 MenuBase::MenuBase()
 {
-//lcd=_lcd;
   curPage=0;
   //curLine=0;
   maxPage=0; 

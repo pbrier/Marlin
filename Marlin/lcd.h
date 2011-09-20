@@ -6,9 +6,6 @@
 
 	#include "Configuration.h"
 
-	#include <LiquidCrystal.h>
-	extern LiquidCrystal lcd;
-
 	//lcd display size
 	#ifdef FANCY_LCD
 		#define LCD_WIDTH 20

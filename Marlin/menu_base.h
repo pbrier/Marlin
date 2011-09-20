@@ -1,7 +1,8 @@
 #ifndef __MENU_BASE
 #define __MENU_BASE
-#include "LiquidCrystal.h"
-extern LiquidCrystal lcd;
+
+#include "Screen.h"
+
 class MenuPage
 {
 public:
@@ -20,18 +21,22 @@ public:
 	{
 		if(items>0)
 			{
-				lcd.setCursor((line/(4-firstline))*xshift,firstline+line%(4-firstline));
-				lcd.print(" ");
+				screen.setCursor((line/(4-firstline))*xshift,firstline+line%(4-firstline));
+				screen.print(" ");
 			}
 	};
 	inline void fillline()
 	{
 		if(items>0)
 			{
-				lcd.setCursor((line/(4-firstline))*xshift,firstline+line%(4-firstline));
-				lcd.print("~");
+				screen.setCursor((line/(4-firstline))*xshift,firstline+line%(4-firstline));
+				screen.print("~");
 			}
 	};
+
+protected:
+    Screen screen;
+
 };
 
 #define MAXPAGES 10

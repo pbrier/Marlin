@@ -4,9 +4,6 @@
 #if defined FANCY_LCD || defined SIMPLE_LCD
 extern volatile int feedmultiply;
 
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(LCD_PINS_RS, LCD_PINS_ENABLE, LCD_PINS_D4, LCD_PINS_D5,LCD_PINS_D6,LCD_PINS_D7);  //RS,Enable,D4,D5,D6,D7 
-
 unsigned long previous_millis_lcd=0;
 
 
@@ -21,66 +18,6 @@ char messagetext[LCD_WIDTH]="";
 
 
 bool force_lcd_update=false;
-
-
-extern LiquidCrystal lcd;
-
-
-//return for string conversion routines
-char conv[8];
-
-///  convert float to string with +123.4 format
-char *ftostr31(const float &x)
-{
-	//sprintf(conv,"%5.1f",x);
-	int xx=x*10;
-	conv[0]=(xx>=0)?'+':'-';
-	xx=abs(xx);
-	conv[1]=(xx/1000)%10+'0';
-	conv[2]=(xx/100)%10+'0';
-	conv[3]=(xx/10)%10+'0';
-	conv[4]='.';
-	conv[5]=(xx)%10+'0';
-	conv[6]=0;
-	return conv;
-}
-
-///  convert float to string with +1234.5 format
-char *ftostr51(const float &x)
-{
-	int xx=x*10;
-	conv[0]=(xx>=0)?'+':'-';
-	xx=abs(xx);
-	conv[1]=(xx/10000)%10+'0';
-	conv[2]=(xx/1000)%10+'0';
-	conv[3]=(xx/100)%10+'0';
-	conv[4]=(xx/10)%10+'0';
-	conv[5]='.';
-	conv[6]=(xx)%10+'0';
-	conv[7]=0;
-	return conv;
-}
-
-char *fillto(int8_t n,char *c)
-{
-	static char ret[25];
-	bool endfound=false;
-	for(int8_t i=0;i<n;i++)
-	{
-		ret[i]=c[i];
-		if(c[i]==0)
-		{
-			endfound=true;
-		}
-		if(endfound)
-		{
-			ret[i]=' ';
-		}
-	}
-	ret[n]=0;
-	return ret;
-	
-}
 
 
 #include "menu_base.h"
@@ -105,20 +42,19 @@ void PageWatch::update()
 {
 	if(messagetext[0])
 	{
-		lcd.setCursor(0,1); 
-		lcd.print(fillto(LCD_WIDTH,messagetext));
+		screen.printRow(1, messagetext);
 		messagetext[0]=0;
 	}
 #ifdef FANCY_LCD
 	if(encoderpos!=lastencoder)
 	{
-		lcd.setCursor(0,2);
-		lcd.print("Speed: ");
+		screen.setCursor(0,2);
+		screen.print("Speed: ");
 		if(encoderpos<5) encoderpos=5;
 		if(encoderpos>600) encoderpos=600;
 		feedmultiply=encoderpos;
-		lcd.print(encoderpos);
-		lcd.print("  ");
+		screen.print(encoderpos);
+		screen.print("  ");
 		lastencoder=encoderpos;
 	}
 #endif FANCY_LCD
@@ -137,9 +73,8 @@ void PageWatch::update()
   (!digitalRead(Z_MIN_PIN))? 'z':' ',
   (!digitalRead(Z_MAX_PIN))? 'Z':' ');
 
-  lcd.setCursor(0,0); 
-  lcd.print(fillto(LCD_WIDTH,line1));
-	
+  screen.printRow(0, line1);
+  screen.display();
 }
 
 void PageWatch::activate()
@@ -147,8 +82,7 @@ void PageWatch::activate()
 #ifdef FANCY_LCD
 	encoderpos=feedmultiply;
 #endif
-	lcd.setCursor(0,0);
-  lcd.print(fillto(LCD_WIDTH," "));
+	screen.printRow(0, "");
 #if 0
   lcd.setCursor(0, 1); 
   //copy last printed gcode line from the buffer onto the lcd
@@ -178,9 +112,9 @@ void PageWatch::activate()
 
   }
 #else
-	lcd.setCursor(0,1);lcd.print(fillto(LCD_WIDTH," "));
-	lcd.setCursor(0,2);lcd.print(fillto(LCD_WIDTH," "));
-	lcd.setCursor(0,3);lcd.print(fillto(LCD_WIDTH," "));
+	screen.printRow(1, "");
+        screen.printRow(2, "");
+        screen.printRow(3, "");
 #endif
 	fillline();
 	update();
@@ -259,15 +193,15 @@ void PageMove::update()
 
 void PageMove::activate()
 {
- lcd.setCursor(0,0);
- lcd.print("Manual Move         ");
- lcd.setCursor(0,1);
- lcd.print(" X");lcd.print(ftostr31(current_position[X_AXIS]));lcd.print("   E");lcd.print(ftostr51(current_position[E_AXIS]));
- lcd.setCursor(0,2);
- lcd.print(" Y");lcd.print(ftostr31(current_position[Y_AXIS]));lcd.print("   St");lcd.print(ftostr31(step/10.));lcd.print(" ");
- lcd.setCursor(0,3);
- lcd.print(" Z");lcd.print(ftostr31(current_position[Z_AXIS]));lcd.print("            ");
+ screen.printRow(0, "Manual Move");
+ screen.setCursorRow(1);
+ screen.print(" X"); screen.printFloat31(current_position[X_AXIS]); screen.print("   E");screen.printFloat41(current_position[E_AXIS]);
+ screen.setCursorRow(2);
+ screen.print(" Y"); screen.printFloat31(current_position[Y_AXIS]); screen.print("   St"); screen.printFloat31(step / 10.0); screen.print(" ");
+ screen.setCursorRow(3);
+ screen.print(" Z");screen.printFloat31(current_position[Z_AXIS]);screen.print("            ");
  fillline();
+ screen.display();
 }
 
 class PageHome:public MenuPage
@@ -307,15 +241,12 @@ void PageHome::update()
 
 void PageHome::activate()
 {
- lcd.setCursor(0,0);
- lcd.print(fillto(20,"Home"));
- lcd.setCursor(0,1);
- lcd.print(fillto(20," X         ZERO"));
- lcd.setCursor(0,2);
- lcd.print(fillto(20," Y         ZERO"));
- lcd.setCursor(0,3);
- lcd.print(fillto(20," Z         ZERO"));
-	fillline();
+    screen.printRow(0, "Home");
+    screen.printRow(1, " X         ZERO");
+    screen.printRow(2, " Y         ZERO");
+    screen.printRow(3, " Z         ZERO");
+    fillline();
+    screen.display();
 }
 
 #ifdef SDSUPPORT
@@ -438,20 +369,21 @@ void PageSd::activate()
 		filename[writepos++]=0;
 		if(cnt>8)
 			break;
-		lcd.setCursor(0+10*(cnt/4),cnt%4);
-		lcd.print(" ");
-		lcd.print(fillto(9,filename));cnt++; 
+		screen.setCursor(0+10*(cnt/4),cnt%4);
+		screen.print(" ");
+		screen.print(filename, 9);cnt++; 
 		
       
 
   }
   for(;cnt<9;cnt++)
 	{
-		lcd.setCursor(0+10*(cnt/4),cnt%4);
-		lcd.print(fillto(9," "));
+		screen.setCursor(0+10*(cnt/4),cnt%4);
+		screen.print("", 9);
 	}
 		
 	fillline();
+    screen.display();
 }
 
 PageSd pagesd;
@@ -499,6 +431,7 @@ void lcd_status()
 
 void lcd_init()
 {
+    Screen screen;
 #ifdef FANCY_LCD
   buttons_init();
 	beep();
@@ -526,14 +459,13 @@ void lcd_init()
     B01110
   };
 
-  lcd.begin(LCD_WIDTH, LCD_HEIGHT);
-  lcd.createChar(1,Degree);
-  lcd.createChar(2,Thermometer);
-  lcd.clear();
-  lcd.print(fillto(LCD_WIDTH,"booting!"));
-  //lcd.setCursor(0, 1);
-  //lcd.print("lets Marlin!");
-	LCD_MESSAGE(fillto(LCD_WIDTH,"UltiMarlin ready."));
+  lcdInit();
+  lcdCreateChar(1,Degree);
+  lcdCreateChar(2,Thermometer);
+  screen.printRow(0, "booting!");
+  screen.display();
+  //screen.PrintRow(1, "lets Marlin!");
+	LCD_MESSAGE("UltiMarlin ready.");
 	menu.addMenuPage(&pagewatch);
 #ifdef FANCY_LCD
 	menu.addMenuPage(&pagemove);
