@@ -65,8 +65,7 @@ void PageWatch::update()
   static char blink=0;
   if (blink == 0)
   {
-  	lcd.setCursor(0,0);
-  	lcd.print(fillto(LCD_WIDTH,"booting..."));
+  	screen.printRow(0, "booting...");
   	blink++;
   } 
   else
@@ -81,9 +80,9 @@ void PageWatch::update()
 	  (!digitalRead(Z_MIN_PIN))? 'z':' ',
 	  (!digitalRead(Z_MAX_PIN))? 'Z':' ');
 
-	lcd.setCursor(0,0); 
-	lcd.print(fillto(LCD_WIDTH,line1));
+	screen.printRow(0, line1);
   }	
+  screen.display();
 }
 
 void PageWatch::activate()
