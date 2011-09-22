@@ -63,18 +63,27 @@ void PageWatch::update()
 		return; //slower updates
 	char line1[25];
   static char blink=0;
-  sprintf(line1,"%c%3i/%3i\1%c%c%c%c%c%c", ((blink++)%2==0)? (char)2:' ',
-  int(analog2temp(current_raw)),
-  int(analog2temp(target_raw)),
-  (!digitalRead(X_MIN_PIN))? 'x':' ',
-  (!digitalRead(X_MAX_PIN))? 'X':' ',
-  (!digitalRead(Y_MIN_PIN))? 'y':' ',
-  (!digitalRead(Y_MAX_PIN))? 'Y':' ',
-  (!digitalRead(Z_MIN_PIN))? 'z':' ',
-  (!digitalRead(Z_MAX_PIN))? 'Z':' ');
+  if (blink == 0)
+  {
+  	lcd.setCursor(0,0);
+  	lcd.print(fillto(LCD_WIDTH,"booting..."));
+  	blink++;
+  } 
+  else
+  {
+	  sprintf(line1,"%c%3i/%3i\1%c%c%c%c%c%c", ((blink++)%2==0)? (char)2:' ',
+	  int(analog2temp(current_raw)),
+	  int(analog2temp(target_raw)),
+	  (!digitalRead(X_MIN_PIN))? 'x':' ',
+	  (!digitalRead(X_MAX_PIN))? 'X':' ',
+	  (!digitalRead(Y_MIN_PIN))? 'y':' ',
+	  (!digitalRead(Y_MAX_PIN))? 'Y':' ',
+	  (!digitalRead(Z_MIN_PIN))? 'z':' ',
+	  (!digitalRead(Z_MAX_PIN))? 'Z':' ');
 
-  screen.printRow(0, line1);
-  screen.display();
+	lcd.setCursor(0,0); 
+	lcd.print(fillto(LCD_WIDTH,line1));
+  }	
 }
 
 void PageWatch::activate()
@@ -122,7 +131,11 @@ void PageWatch::activate()
 
 #ifdef FANCY_LCD
 
+int lastline=-1;
+int lastencoder=0;
+int step=2;
 
+#ifdef PAGEMOVE
 class PageMove:public MenuPage
 {
 public:
@@ -143,9 +156,7 @@ PageMove::PageMove()
   xshift=10;items=4;
 }
 
-int lastline=-1;
-int lastencoder=0;
-int step=2;
+
 void PageMove::update()
 {
 	
@@ -203,7 +214,7 @@ void PageMove::activate()
  fillline();
  screen.display();
 }
-
+#endif
 class PageHome:public MenuPage
 {
 public:
@@ -387,9 +398,12 @@ void PageSd::activate()
 }
 
 PageSd pagesd;
-
 #endif // SD_SUPPORT 
+
+#ifdef PAGEMOVE
 PageMove pagemove;
+#endif
+
 PageHome pagehome;
 #endif // FANCY_LCD
 PageWatch pagewatch;
@@ -462,14 +476,13 @@ void lcd_init()
   lcdInit();
   lcdCreateChar(1,Degree);
   lcdCreateChar(2,Thermometer);
-  screen.printRow(0, "booting!");
-  screen.display();
-  //screen.PrintRow(1, "lets Marlin!");
 	LCD_MESSAGE("UltiMarlin ready.");
 	menu.addMenuPage(&pagewatch);
 #ifdef FANCY_LCD
+#ifdef PAGEMOVE
 	menu.addMenuPage(&pagemove);
-		menu.addMenuPage(&pagehome);
+#endif
+	menu.addMenuPage(&pagehome);
 #endif //FANCY_LCD
 #ifdef SDSUPPORT
 		menu.addMenuPage(&pagesd);
@@ -512,18 +525,7 @@ void buttons_process()
 }
 
 
-///adds an command to the main command buffer
-void enquecommand(const char *cmd)
-{
-  if(buflen < BUFSIZE)
-  {
-    //this is dangerous if a mixing of serial and this happsens
-    strcpy(&(cmdbuffer[bufindw][0]),cmd);
-    Serial.print("en:");Serial.println(cmdbuffer[bufindw]);
-    bufindw= (bufindw + 1)%BUFSIZE;
-    buflen += 1;
-  }
-}
+
 
 #endif // FANCY_LCD
 
@@ -531,14 +533,13 @@ void beep()
 {
   // [ErikDeBruijn] changed to two short beeps, more friendly
   pinMode(BEEPER,OUTPUT);
+	for(int i=0;i<20;i++){
   digitalWrite(BEEPER,HIGH);
-  delay(200);
+  delay(5);
   digitalWrite(BEEPER,LOW);
-  delay(200);
-  digitalWrite(BEEPER,HIGH);
-  delay(200);
-  digitalWrite(BEEPER,LOW);
-
+  delay(5);
+	}
+  
 }
 
 #endif

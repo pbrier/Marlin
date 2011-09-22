@@ -65,7 +65,7 @@ char version_string[] = "U0.9.3.3-BK";
 #endif
 
 #ifdef SIMPLE_LCD
-  #define BLOCK_BUFFER_SIZE 32 // A little less buffer for just a simple LCD
+  #define BLOCK_BUFFER_SIZE 24 // A little less buffer for just a simple LCD
 #endif
 
 // if DEBUG_STEPS is enabled, M114 can be used to compare two methods of determining the X,Y,Z position of the printer.
@@ -118,7 +118,9 @@ volatile int count_direction[NUM_AXIS] = { 1, 1, 1, 1};
 // M140 - Set bed target temp
 // M190 - Wait for bed current temp to reach target temp.
 // M201 - Set max acceleration in units/s^2 for print moves (M201 X1000 Y1000)
-// M202 - Set max acceleration in units/s^2 for travel moves (M202 X1000 Y1000)
+// M202 - Set max acceleration in units/s^2 for travel moves (M202 X1000 Y1000) Unused in Marlin!!
+// M203 - Set maximum feedrate that your machine can sustain (M203 X200 Y200 Z300 E10000) in mm/sec
+// M204 - Set default acceleration: S normal moves T filament only moves (M204 S3000 T7000) im mm/sec^2
 // M301 - Set PID parameters P I and D
 
 //Stepper Movement Variables
@@ -206,6 +208,7 @@ bool sdmode = false;
 bool sdactive = false;
 bool savetosd = false;
 int16_t n;
+long autostart_atmillis=0;
 
 void initsd(){
   sdactive = false;
@@ -221,8 +224,16 @@ void initsd(){
   else if (!root.openRoot(&volume)) 
     Serial.println("openRoot failed");
   else 
+	{
     sdactive = true;
+		Serial.println("SD card ok");
+	}
 #endif //SDSS
+}
+
+void quickinitsd(){
+	sdactive=false;
+	autostart_atmillis=millis()+5000;
 }
 
 inline void write_command(char *buf){
@@ -245,6 +256,20 @@ inline void write_command(char *buf){
   }
 }
 #endif //SDSUPPORT
+
+
+///adds an command to the main command buffer
+void enquecommand(const char *cmd)
+{
+  if(buflen < BUFSIZE)
+  {
+    //this is dangerous if a mixing of serial and this happsens
+    strcpy(&(cmdbuffer[bufindw][0]),cmd);
+    Serial.print("en:");Serial.println(cmdbuffer[bufindw]);
+    bufindw= (bufindw + 1)%BUFSIZE;
+    buflen += 1;
+  }
+}
 
 void setup()
 { 
@@ -376,20 +401,36 @@ void setup()
   SET_OUTPUT(SDPOWER); 
   WRITE(SDPOWER,HIGH);
 #endif //SDPOWER
-  initsd();
+  quickinitsd();
 
 #endif //SDSUPPORT
   plan_init();  // Initialize planner;
   st_init();    // Initialize stepper;
 //  tp_init();    // Initialize temperature loop
-	checkautostart();
+	//checkautostart();
 }
 
 #ifdef SDSUPPORT
-void checkautostart()
+bool autostart_stilltocheck=true;
+
+
+void checkautostart(bool force)
 {
+	//this is to delay autostart and hence the initialisaiton of the sd card to some seconds after the normal init, so the device is available quick after a reset
+	if(!force)
+	{
+		if(!autostart_stilltocheck)
+			return;
+		if(autostart_atmillis<millis())
+			return;
+	}
+	autostart_stilltocheck=false;
 	if(!sdactive)
+	{
+		initsd();
+		if(!sdactive) //fail
 		return;
+	}
 	static int lastnr=0;
 	char autoname[30];
 	sprintf(autoname,"auto%i.g",lastnr);
@@ -409,7 +450,7 @@ void checkautostart()
 		//Serial.print((char*)p.name);
 		//Serial.print(" ");
 		//Serial.println(autoname);
-		
+		if(p.name[9]!='~') //skip safety copies
 		if(strncmp((char*)p.name,autoname,5)==0)
 		{
 			char cmd[30];
@@ -432,7 +473,8 @@ void checkautostart()
 	
 }
 #else
-void checkautostart()
+
+inline void checkautostart(bool x)
 {
 }
 #endif
@@ -442,8 +484,9 @@ void loop()
 {
   if(buflen<3)
     get_command();
-
-  if(buflen){
+	checkautostart(false);
+  if(buflen)
+  {
 #ifdef SDSUPPORT
     if(savetosd){
       if(strstr(cmdbuffer[bufindr],"M29") == NULL){
@@ -469,7 +512,7 @@ void loop()
   //check heater every n milliseconds
   manage_heater();
   manage_inactivity(1);
-        LCD_STATUS;
+  LCD_STATUS;
 }
 
 
@@ -585,7 +628,7 @@ inline void get_command()
 				sprintf(time,"%i min, %i sec",min,sec);
 				Serial.println(time);
 				LCD_MESSAGE(time);
-				checkautostart();
+				checkautostart(true);
       }
       if(!serial_count) return; //if empty line
       cmdbuffer[bufindw][serial_count] = 0; //terminate string
@@ -910,7 +953,7 @@ inline void process_commands()
         return;
         //break;
       case 109: // M109 - Wait for extruder heater to reach target.
-                                LCD_MESSAGE("Heating...");
+        LCD_MESSAGE("Heating...");
         if (code_seen('S')) target_raw = temp2analog(code_value());
         #ifdef WATCHPERIOD
             if(target_raw>current_raw){
@@ -933,6 +976,7 @@ inline void process_commands()
           LCD_STATUS;
           manage_heater();
         }
+        LCD_MESSAGE("UltiMarlin ready.");
         break;
       case 190: // M190 - Wait bed for heater to reach target.
       #if TEMP_1_PIN > -1
@@ -1062,6 +1106,17 @@ inline void process_commands()
       }
       break;
 #endif
+    case 203: // M203 max feedrate mm/sec
+      for(int i=0; i < NUM_AXIS; i++) {
+        if(code_seen(axis_codes[i])) max_feedrate[i] = code_value()*60 ;
+      }
+      break;
+    case 204: // M204 acclereration S normal moves T filmanent only moves
+      {
+        if(code_seen('S')) acceleration = code_value() ;
+        if(code_seen('T')) retract_acceleration = code_value() ;
+      }
+      break;
 #ifdef PIDTEMP
     case 301: // M301
       if(code_seen('P')) Kp = code_value();
@@ -1544,7 +1599,7 @@ inline void manage_inactivity(byte debug) {
 
 
 
-static block_t block_buffer[BLOCK_BUFFER_SIZE];            // A ring buffer for motion instructions
+static block_t block_buffer[BLOCK_BUFFER_SIZE];            // A ring buffer for motion instfructions
 static volatile unsigned char block_buffer_head;           // Index of the next block to be pushed
 static volatile unsigned char block_buffer_tail;           // Index of the block to process now
 
@@ -1568,17 +1623,10 @@ inline long estimate_acceleration_distance(long initial_rate, long target_rate, 
 // deceleration in the cases where the trapezoid has no plateau (i.e. never reaches maximum speed)
 
 inline long intersection_distance(long initial_rate, long final_rate, long acceleration, long distance) {
-    long delta = final_rate - initial_rate;
-    if (delta > 0)
-    {
-        return distance - ((distance - acceleration * delta) >> 1);
-    }
-    else if (delta < 0)
-    {
-        return (distance - acceleration * delta) >> 1;
-    }
-    
-    return distance >> 1;
+  return(
+  (2*acceleration*distance-initial_rate*initial_rate+final_rate*final_rate)/
+    (4*acceleration)
+    );
 }
 
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
@@ -1615,7 +1663,7 @@ void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit
   }  
 
   long decelerate_after = accelerate_steps+plateau_steps;
-  long acceleration_rate = (long)((float)acceleration * 8.388608); // 2^23 / 10^6 ???
+  long acceleration_rate = (long)((float)acceleration * 8.388608);
 
   CRITICAL_SECTION_START;  // Fill variables used by the stepper in a critical section
   if(block->busy == false) { // Don't update variables if block is busy.
@@ -1882,7 +1930,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
   block->step_event_count = max(block->steps_x, max(block->steps_y, max(block->steps_z, block->steps_e)));
 
   // Bail if this is a zero-length block
-  if (block->step_event_count == 0) { 
+  if (block->step_event_count <=dropsegments) { 
     return; 
   };
 
@@ -1900,15 +1948,32 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
 
   unsigned long microseconds;
   microseconds = lround((block->millimeters/feed_rate)*1000000);
-  
+	
+
   // added by lampmaker to slow down when de buffer starts to empty, rather than wait at the corner for a buffer refill
   // reduces/removes corner blobs as the machine won't come to a full stop.
   int blockcount=block_buffer_head-block_buffer_tail;
   //blockcount=8;
   while(blockcount<0) blockcount+=BLOCK_BUFFER_SIZE;
-  if ((blockcount<=2)&&(microseconds<(MIN_SEGMENT_TIME))) microseconds=MIN_SEGMENT_TIME;
-  else if ((blockcount<=4)&&(microseconds<(MIN_SEGMENT_TIME/2))) microseconds=MIN_SEGMENT_TIME/2;
-  else if ((blockcount<=8)&&(microseconds<(MIN_SEGMENT_TIME/5))) microseconds=MIN_SEGMENT_TIME/5;   
+  if ((blockcount<=2)&&(microseconds<(MIN_SEGMENT_TIME))) 
+		microseconds=MIN_SEGMENT_TIME;
+  else 
+		if ((blockcount<=4)&&(microseconds<(MIN_SEGMENT_TIME/2))) 
+			microseconds=MIN_SEGMENT_TIME/2;
+  else 
+		if ((blockcount<=8)&&(microseconds<(MIN_SEGMENT_TIME/5))) 
+			microseconds=MIN_SEGMENT_TIME/5;
+	else
+	{
+#ifdef TRAVELING_AT_MAXSPEED
+	//only do this if the buffer is actually full enough. Otherwise, a smallsegmented crop-travel move causes a lot of buffer underruns and jerking
+	if(delta_e_mm==0) //if no extrusion
+	{
+		microseconds*=0.5; // speed limits then should get working
+	}
+#endif  	
+		
+	}
 
   // Calculate speed in mm/minute for each axis
   float multiplier = 60.0*1000000.0/microseconds;
@@ -1917,25 +1982,26 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
   block->speed_y = delta_y_mm * multiplier;
   block->speed_e = delta_e_mm * multiplier; 
 
+
   // Limit speed per axis
-  float speed_factor = 1;
-  float tmp_speed_factor;
+  float speed_factor = 1; //factor <=1 do decrease speed
   if(abs(block->speed_x) > max_feedrate[X_AXIS]) {
     //// [ErikDeBruijn] IS THIS THE BUG WE'RE LOOING FOR????
-    // it used to be just this line: speed_factor = max_feedrate[X_AXIS] / abs(block->speed_x);
-    tmp_speed_factor = max_feedrate[X_AXIS] / abs(block->speed_x);
-    if(speed_factor > tmp_speed_factor) speed_factor = tmp_speed_factor;
+    //// [bernhard] No its not, according to Zalm.
+		//// the if would always be true, since tmp_speedfactor <=0 due the inial if, so its safe to set. the next lines actually compare.
+    speed_factor = max_feedrate[X_AXIS] / abs(block->speed_x);
+    //if(speed_factor > tmp_speed_factor) speed_factor = tmp_speed_factor;
   }
   if(abs(block->speed_y) > max_feedrate[Y_AXIS]){
-    tmp_speed_factor = max_feedrate[Y_AXIS] / abs(block->speed_y);
+    float tmp_speed_factor = max_feedrate[Y_AXIS] / abs(block->speed_y);
     if(speed_factor > tmp_speed_factor) speed_factor = tmp_speed_factor;
   }
   if(abs(block->speed_z) > max_feedrate[Z_AXIS]){
-    tmp_speed_factor = max_feedrate[Z_AXIS] / abs(block->speed_z);
+    float tmp_speed_factor = max_feedrate[Z_AXIS] / abs(block->speed_z);
     if(speed_factor > tmp_speed_factor) speed_factor = tmp_speed_factor;
   }
   if(abs(block->speed_e) > max_feedrate[E_AXIS]){
-    tmp_speed_factor = max_feedrate[E_AXIS] / abs(block->speed_e);
+    float tmp_speed_factor = max_feedrate[E_AXIS] / abs(block->speed_e);
     if(speed_factor > tmp_speed_factor) speed_factor = tmp_speed_factor;
   }
   multiplier = multiplier * speed_factor;
@@ -1963,7 +2029,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
       block->acceleration_st = axis_steps_per_sqr_second[Y_AXIS];
     if((block->acceleration_st * block->steps_e / block->step_event_count) > axis_steps_per_sqr_second[E_AXIS])
       block->acceleration_st = axis_steps_per_sqr_second[E_AXIS];
-    if(((block->acceleration_st / block->step_event_count) * block->steps_z ) > axis_steps_per_sqr_second[Z_AXIS])
+    if((block->acceleration_st * block->steps_z / block->step_event_count) > axis_steps_per_sqr_second[Z_AXIS])
       block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS];
   }
   block->acceleration = block->acceleration_st * travel_per_step;
@@ -2023,12 +2089,7 @@ void plan_set_position(float x, float y, float z, float e)
   position[X_AXIS] = lround(x*axis_steps_per_unit[X_AXIS]);
   position[Y_AXIS] = lround(y*axis_steps_per_unit[Y_AXIS]);
   position[Z_AXIS] = lround(z*axis_steps_per_unit[Z_AXIS]);     
-  position[E_AXIS] = lround(e*axis_steps_per_unit[E_AXIS]);    
-#ifdef DEBUG_STEPS
-  count_position[X_AXIS]=  position[X_AXIS];
-  count_position[Y_AXIS]=  position[Y_AXIS];
-  count_position[Z_AXIS]=  position[Z_AXIS];
-#endif
+  position[E_AXIS] = lround(e*axis_steps_per_unit[E_AXIS]);     
 }
 
 // Stepper
