@@ -1947,6 +1947,8 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
   block->millimeters = sqrt(square(delta_x_mm) + square(delta_y_mm) + square(delta_z_mm) + square(delta_e_mm));
 
   unsigned long microseconds;
+	if(feedrate<minimumfeedrate)
+		feedrate=minimumfeedrate;
   microseconds = lround((block->millimeters/feed_rate)*1000000);
 	
 
@@ -2018,7 +2020,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate) {
   // Compute the acceleration rate for the trapezoid generator. 
   float travel_per_step = block->millimeters/block->step_event_count;
   if(block->steps_x == 0 && block->steps_y == 0 && block->steps_z == 0) {
-    block->acceleration = ceil( (retract_acceleration)/travel_per_step); // convert to: acceleration steps/sec^2
+    block->acceleration_st = ceil( (retract_acceleration)/travel_per_step); // convert to: acceleration steps/sec^2
   }
   else {
     block->acceleration_st = ceil( (acceleration)/travel_per_step);      // convert to: acceleration steps/sec^2
