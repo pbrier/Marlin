@@ -550,6 +550,10 @@
 #define E_DIR_PIN          EXTRUDER_0_DIR_PIN
 #define E_ENABLE_PIN       EXTRUDER_0_ENABLE_PIN
 
+#define A_STEP_PIN         EXTRUDER_1_STEP_PIN
+#define A_DIR_PIN          EXTRUDER_1_DIR_PIN
+#define A_ENABLE_PIN       EXTRUDER_1_ENABLE_PIN
+
 #define SDPOWER            -1
 #define SDSS               53
 #define LED_PIN            13

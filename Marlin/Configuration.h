@@ -19,19 +19,13 @@
 
 // Select one of these only to define how the bed temp is read.
 //#define BED_USES_THERMISTOR
-//#define BED_USES_AD595
+#define BED_USES_AD595
 
 #define HEATER_CHECK_INTERVAL 50
-#define BED_CHECK_INTERVAL 5000
+#define BED_CHECK_INTERVAL 50
 #define BNUMTEMPS NUMTEMPS
 #define bedtemptable temptable
 
-//// Calibration variables
-// X, Y, Z, E steps per unit - Metric Mendel / Orca with V9 extruder:
-float axis_steps_per_unit[] = {79.87220447, 79.87220447,  200*8/3., 14}; 
-// For E steps per unit = 67 for v9 with direct drive (needs finetuning) for other extruders this needs to be changed 
-// Metric Prusa Mendel with Makergear geared stepper extruder:
-//float axis_steps_per_unit[] = {80,80,3200/1.25,1380}; 
 
 //// Endstop Settings
 #define ENDSTOPPULLUPS // Comment this out (using // at the start of the line) to disable the endstop pullup resistors
@@ -43,11 +37,25 @@ const bool ENDSTOPS_INVERTING = true; // set to true to invert the logic of the 
 #define BAUDRATE 115200
 
 // Comment out (using // at the start of the line) to disable SD support:
-//#define SDSUPPORT
-#define FANCY_LCD
-//#define FANCY_BUTTONS
+
+// #define ULTRA_LCD  //any lcd 
+#define LCD_WIDTH 16
+#define LCD_HEIGHT 2
+
+//#define ULTIPANEL
+#ifdef ULTIPANEL
+ #define SDSUPPORT
+ #define ULTRA_LCD
+ #define LCD_WIDTH 20
+#define LCD_HEIGHT 4
+#endif
 
 
+//#define SDSUPPORT // Enable SD Card Support in Hardware Console
+
+
+
+const int dropsegments=2; //everything with this number of steps  will be ignored as move
 
 //// ADVANCED SETTINGS - to tweak parameters
 
@@ -79,23 +87,35 @@ const bool ENDSTOPS_INVERTING = true; // set to true to invert the logic of the 
 
 #define min_software_endstops false //If true, axis won't move to coordinates less than zero.
 #define max_software_endstops true  //If true, axis won't move to coordinates greater than the defined lengths below.
-#define X_MAX_LENGTH 200
-#define Y_MAX_LENGTH 200
-#define Z_MAX_LENGTH 100
+#define X_MAX_LENGTH 210
+#define Y_MAX_LENGTH 210
+#define Z_MAX_LENGTH 210
 
 //// MOVEMENT SETTINGS
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
-float max_feedrate[] = {60000, 60000, 50000, 500000}; // set the max speeds
-float homing_feedrate[] = {2400, 2400, 200, 0};  // set the homing speeds
+//note: on bernhards ultimaker 200 200 12 are working well.
+float homing_feedrate[] = {70*60, 70*60, 12*60, 0};  // set the homing speeds
+//the followint checks if an extrusion is existent in the move. if _not_, the speed of the move is set to the maximum speed. 
+//!!!!!!Use only if you know that your printer works at the maximum declared speeds.
+// works around the skeinforge cool-bug. There all moves are slowed to have a minimum layer time. However slow travel moves= ooze
+#define TRAVELING_AT_MAXSPEED  
 bool axis_relative_modes[] = {false, false, false, false};
 
-//// Acceleration settings
-// X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
-float acceleration = 4000;         // Normal acceleration mm/s^2
-float retract_acceleration = 10000; // Normal acceleration mm/s^2
-float max_jerk = 20*60;
-long max_acceleration_units_per_sq_second[] = {15000,15000,150000,15000}; // X, Y, Z and E max acceleration in mm/s^2 for printing moves or retracts
-// Not used long max_travel_acceleration_units_per_sq_second[] = {500,500,50,500}; // X, Y, Z max acceleration in mm/s^2 for travel moves
+
+// default settings 
+
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {79.87220447,79.87220447,200*8/3,14};                    // default steps per unit for ultimaker 
+#define DEFAULT_MAX_FEEDRATE          {160*60, 160*60, 10*60, 500000}        
+#define DEFAULT_MAX_ACCELERATION      {9000,9000,150,10000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
+
+#define DEFAULT_ACCELERATION          4600;    // X, Y, Z and E max acceleration in mm/s^2 for printing moves 
+#define DEFAULT_RETRACT_ACCELERATION  7000;   // X, Y, Z and E max acceleration in mm/s^2 for r retracts
+
+#define DEFAULT_MINIMUMFEEDRATE       00*60;      // minimum feedrate
+#define DEFAULT_MINTRAVELFEEDRATE     00*60;
+#define DEFAULT_MINSEGMENTTIME        20000;    // minimum segmenttime to prevent buffer underruns
+#define DEFAULT_XYJERK                30.0*60;    
+#define DEFAULT_ZJERK                 10.0*60;
 
 
 // The watchdog waits for the watchperiod in milliseconds whenever an M104 or M109 increases the target temperature
@@ -110,6 +130,11 @@ long max_acceleration_units_per_sq_second[] = {15000,15000,150000,15000}; // X, 
 // This feature exists to protect your hotend from overheating accidentally, but *NOT* from thermistor short/failure!
 // You should use MINTEMP for thermistor short/failure protection.
 #define MAXTEMP 275
+
+
+// minimum time in microseconds that a movement needs to take to prevent the buffer from being emptied.   Higher baudrates might reduce this number.
+// minimum time in microseconds that a movement needs to take if the buffer is emptied.   Increase this number if you see blobs while printing high speed & high detail.  It will slowdown on the detailed stuff.
+#define MIN_SEGMENT_TIME 60000
 
 
 /// PID settings:
@@ -137,10 +162,10 @@ double Kd = 80/PID_dT;
 //#define ADVANCE
 
 #ifdef ADVANCE
-#define EXTRUDER_ADVANCE_K 0.02
+#define EXTRUDER_ADVANCE_K .3
 
-#define D_FILAMENT 2.75
-#define STEPS_MM_E 600
+#define D_FILAMENT 1.7
+#define STEPS_MM_E 65
 #define EXTRUTION_AREA (0.25 * D_FILAMENT * D_FILAMENT * 3.14159)
 #define STEPS_PER_CUBIC_MM_E (axis_steps_per_unit[E_AXIS]/ EXTRUTION_AREA)
 
