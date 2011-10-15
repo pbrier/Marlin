@@ -33,8 +33,8 @@ public:
     void begin(uint8_t x, uint8_t y);
     char* getCursor() const { return pCurrent; }
     void setCursor(char *pCursor) { pCurrent = pCursor; }
-    void setCursor(int col, int row);
-    void setCursorRow(int row);
+    void setCursor(const int8_t col, const int8_t row);
+    void setCursorRow(const int8_t row);
 
     void print(char ch);
     void print(int value);
@@ -45,7 +45,7 @@ public:
     void printFloat31(float value);
     void printFloat41(float value);
     
-    void createChar(uint8_t location, uint8_t charmap[]);
+    void createChar(const uint8_t location, const uint8_t charmap[]);
 
     bool display();
 

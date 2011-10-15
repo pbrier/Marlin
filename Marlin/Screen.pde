@@ -1,6 +1,6 @@
 #include "Screen.h"
 #include <string.h>
-
+#define LCD_DEBUG
 
 ///-----------------------------------------------------
 
@@ -42,7 +42,7 @@ void lcdInit();
 
 // Create a custom character in one of the first 8 places
 // NOTE: must be called after lcdInit and before anyother methods
-void lcdCreateChar(uint8_t location, uint8_t charmap[]);
+void lcdCreateChar(const uint8_t location, const uint8_t charmap[]);
 
 // lcdLockBuffer - Called to setup a buffer to write to returns true on success and should
 // be followed by a matching call to lcdWriteBuffer(). A return value of false means there
@@ -53,7 +53,7 @@ bool lcdLockBuffer();
 void lcdWriteBuffer();
 
 // Set the current write position in the buffer.
-void lcdSetCursor(int col, int row);
+void lcdSetCursor(const int col, const int row);
 
 // Print a nul treminated string of characters caller should limit to the remaining length 
 // of the current row. This method advances the current write postition.
@@ -208,7 +208,7 @@ void lcdInit()
     OutCmpA(LcdInterruptNumber) = INTERRUPT_IDLE; 
 }
 
-void lcdCreateChar(uint8_t location, uint8_t charmap[])
+void lcdCreateChar(const uint8_t location, const uint8_t charmap[])
 {
     int i;
     
@@ -220,7 +220,7 @@ void lcdCreateChar(uint8_t location, uint8_t charmap[])
     }
 }
 
-void lcdSetCursor(int col, int row)
+void lcdSetCursor(const int8_t col, const int8_t row)
 {
     switch (row)
     {
@@ -330,6 +330,7 @@ bool lcdWriteBuffer(uint8_t *pBuffer)
 Internal functions
 
 ************************************************************************/
+
 
 #ifdef LCD_DEBUG
 
@@ -566,13 +567,13 @@ void Screen::begin(uint8_t x, uint8_t y)
     //ignore
   
 }
-void Screen::setCursor(int col, int row)
+void Screen::setCursor(const int8_t col, const int8_t row)
 {
     setCursorRow(row);
     pCurrent += col;
 }
 
-void Screen::setCursorRow(int row)
+void Screen::setCursorRow(const int8_t row)
 {
     switch (row)
     {
@@ -762,7 +763,7 @@ void Screen::print(int value)
     *pCurrent++ = value + '0';
 }
 
-void Screen::createChar(uint8_t location, uint8_t charmap[])
+void Screen::createChar(const uint8_t location, const uint8_t charmap[])
 {
   lcdCreateChar(location, charmap);
 }
