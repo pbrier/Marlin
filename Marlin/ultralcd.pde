@@ -5,8 +5,9 @@
 extern volatile int feedmultiply;
 char messagetext[LCD_WIDTH]="";
 
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(LCD_PINS_RS, LCD_PINS_ENABLE, LCD_PINS_D4, LCD_PINS_D5,LCD_PINS_D6,LCD_PINS_D7);  //RS,Enable,D4,D5,D6,D7 
+//#include <LiquidCrystal.h>
+//LiquidCrystal lcd(LCD_PINS_RS, LCD_PINS_ENABLE, LCD_PINS_D4, LCD_PINS_D5,LCD_PINS_D6,LCD_PINS_D7);  //RS,Enable,D4,D5,D6,D7 
+Screen lcd;
 
 unsigned long previous_millis_lcd=0;
 

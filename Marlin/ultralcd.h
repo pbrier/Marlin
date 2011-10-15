@@ -3,6 +3,11 @@
 //#define NEWPANEL
 
 
+
+#include <WProgram.h>
+#include "fastio.h"
+
+
 #ifdef ULTRA_LCD
 
   void lcd_status();
@@ -16,8 +21,9 @@
 
   #include "Configuration.h"
 
-  #include <LiquidCrystal.h>
-  extern LiquidCrystal lcd;
+  //#include <LiquidCrystal.h>
+  #include "Screen.h"
+  //extern Screen lcd;
 
   //lcd display size
 
