@@ -44,9 +44,7 @@
 #include "Marlin.h"
 #include "speed_lookuptable.h"
 #include "ultralcd.h"
-#ifdef SIMPLE_LCD
-  #include "Simplelcd.h"
-#endif
+
 
 char version_string[] = "U0.9.3.3-BK";
 
@@ -67,9 +65,6 @@ char version_string[] = "U0.9.3.3-BK";
   #define BLOCK_BUFFER_SIZE 40 // maximize block buffer
 #endif
 
-#ifdef SIMPLE_LCD
-  #define BLOCK_BUFFER_SIZE 30 // A little less buffer for just a simple LCD
-#endif
 
 // if DEBUG_STEPS is enabled, M114 can be used to compare two methods of determining the X,Y,Z position of the printer.
 // for debugging purposes only, should be disabled by default
@@ -300,7 +295,7 @@ void setup()
   Serial.print("Marlin ");
   Serial.println(version_string);
   Serial.println("start");
-#if defined FANCY_LCD || defined SIMPLE_LCD
+#ifdef ULTRA_LCD
   lcd_init();
 #endif
   for(int i = 0; i < BUFSIZE; i++){
@@ -505,6 +500,7 @@ inline void checkautostart(bool x)
 
 void loop()
 {
+   DebugState();
   if(buflen<3)
     get_command();
 	checkautostart(false);

@@ -153,7 +153,7 @@ void buttons_check()
   if((blocking<millis()) &&(digitalRead(BTN_ENC)==0))
     newbutton|=EN_C;
   buttons=newbutton;
-  Serial.println((int)newbutton);
+  //Serial.println((int)newbutton);
 #else
   //read it from the shift register
   volatile static bool busy=false;
@@ -363,8 +363,8 @@ void MainMenu::showStatus()
     lcd.print(fillto(LCD_WIDTH,messagetext));
     messagetext[0]='\0';
   }
-
 #endif
+  lcd.display();
 }
 
 enum {ItemP_exit, ItemP_home, ItemP_origin, ItemP_preheat, ItemP_extrude, ItemP_disstep};

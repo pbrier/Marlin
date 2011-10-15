@@ -32,10 +32,6 @@
 #define ENTRY_CMD_ARGS ENTRY_LEFTTORIGHT | ENTRY_SHIFT_OFF
 
 
-
-
-
-
 // lcdInit - Needs to be called once to setup the LCD display and interrupt before the 
 // display can be used.
 void lcdInit();
@@ -86,7 +82,6 @@ inline void lcdSetDataBits(uint8_t nibble)
     A double buffered interrupt driven LCD library
 */
 
-//#define LCD_DEBUG
 
 struct LCD_BUFFER
 {
@@ -560,6 +555,7 @@ void Screen::clear()
 {
     memset(buffer, ' ', LCD_ROWS * LCD_COLS);
     pCurrent = buffer; 
+    //buffer[0]='A';buffer[1]='B';
 }
 
 void Screen::begin(uint8_t x, uint8_t y)
