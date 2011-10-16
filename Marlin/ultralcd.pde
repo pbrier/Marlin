@@ -36,7 +36,7 @@ void clear()
 }
 long previous_millis_buttons=0;
 
-void lcd_init()
+void lcd_prepare()
 {
   //beep();
   lcd.init();
@@ -231,7 +231,7 @@ MainMenu::MainMenu()
 #ifdef ULTIPANEL
   buttons_init();
 #endif
-  lcd_init();
+  lcd_prepare();
   linechanging=false;
 }
 

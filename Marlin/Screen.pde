@@ -37,7 +37,7 @@
 void lcdInit();
 
 // Create a custom character in one of the first 8 places
-// NOTE: must be called after lcdInit and before anyother methods
+// NOTE: must be called after lcdIni tand before anyother methods
 void lcdCreateChar(const uint8_t location, const uint8_t charmap[]);
 
 // lcdLockBuffer - Called to setup a buffer to write to returns true on success and should
@@ -542,6 +542,10 @@ Screen::Screen()
 
 }
 
+void Screen::init()
+{
+    lcdInit();
+}
 
 Screen::Screen(char* baseScreen)
 {
@@ -552,11 +556,7 @@ Screen::Screen(char* baseScreen)
     pCurrent = buffer;
 }
 
-void Screen::init()
-{
- lcdInit();
-  clear(); 
-}
+
 void Screen::clear()
 {
     memset(buffer, ' ', LCD_ROWS * LCD_COLS);

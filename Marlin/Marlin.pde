@@ -296,8 +296,7 @@ void setup()
   Serial.print("Marlin ");
   Serial.println(version_string);
   Serial.println("start");
- 
-
+  lcd_prepare();
   for(int i = 0; i < BUFSIZE; i++){
     fromsd[i] = false;
   }
