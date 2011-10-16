@@ -160,11 +160,11 @@ void lcdInit()
     SET_OUTPUT(LCD_DB6_PIN);
     SET_OUTPUT(LCD_DB7_PIN);
 
-    delayMicroseconds(50000);            // 15ms after 4.5V or 40ms after 2.7V
+    delayMicroseconds(25000);            // 15ms after 4.5V or 40ms after 2.7V
     lcdCommandNibble(INITIALIZE_CMD);
-    delayMicroseconds(4500);             // >4.1ms
+    delayMicroseconds(6500);             // >4.1ms
     lcdCommandNibble(INITIALIZE_CMD);
-    delayMicroseconds(150);              // > 100
+    delayMicroseconds(250);              // > 100
     lcdCommandNibble(INITIALIZE_CMD);
     
     lcdCommandNibble(SET_4BIT_CMD); // Set 4 bit interface
@@ -197,10 +197,13 @@ void lcdInit()
     pWrite = 0;
     pWriteCurrent = 0;
      
+    if(1)
+    {
     TimerMask(LcdInterruptNumber) |= _BV(TimerBit(LcdInterruptNumber));
     TimerA(LcdInterruptNumber) = TIMER_A_VALUE;
     TimerB(LcdInterruptNumber) = TIMER_B_VALUE;
     OutCmpA(LcdInterruptNumber) = INTERRUPT_IDLE; 
+    }
 }
 
 void lcdCreateChar(const uint8_t location, const uint8_t charmap[])
@@ -412,7 +415,7 @@ void lcdSyncWriteNibble(uint8_t value)
     
     WRITE(LCD_E_PIN, HIGH);
     
-    delayMicroseconds(1);
+    delayMicroseconds(2);
     
     WRITE(LCD_E_PIN, LOW);
     
@@ -441,7 +444,6 @@ void handleLcd()
 {
     uint8_t writeByte;
     ISR_ENTER;
-    
     // We know the user isn't altering buffer state
     // and we will complete before they execute again
     if(interruptState == INTERRUPTSTATE_IDLE)
@@ -537,8 +539,7 @@ void handleLcd()
 
 Screen::Screen()
 {
-  lcdInit();
-    clear();
+  
 }
 
 
@@ -551,6 +552,11 @@ Screen::Screen(char* baseScreen)
     pCurrent = buffer;
 }
 
+void Screen::init()
+{
+ lcdInit();
+  clear(); 
+}
 void Screen::clear()
 {
     memset(buffer, ' ', LCD_ROWS * LCD_COLS);

@@ -288,6 +288,8 @@ void enquecommand(const char *cmd)
   }
 }
 
+#include "Screen.h"
+extern Screen lcd;
 void setup()
 { 
 	
@@ -295,6 +297,44 @@ void setup()
   Serial.print("Marlin ");
   Serial.println(version_string);
   Serial.println("start");
+  if(0)
+  {
+    Screen test;
+    
+    
+   //lcdInit();
+   //lcdPrint("Test");
+   //lcdWriteBuffer();
+    test.print("test");
+    test.display();
+   while(1){
+     test.setCursor(0,0);
+     test.print((int)millis());
+     delay(100);
+     test.display();
+  };
+  }
+  //lcd.init
+  if(0)
+  {
+    //Screen test;
+    
+    
+   //lcdInit();
+   //lcdPrint("Test");
+   //lcdWriteBuffer();
+   lcd.init();
+    lcd.print("test");
+    lcd.display();
+
+   while(1){
+     lcd.setCursor(0,0);
+     lcd.print((int)millis());
+     delay(100);
+     lcd.display();
+  };
+  
+  }
 #ifdef ULTRA_LCD
   lcd_init();
 #endif
@@ -2314,7 +2354,7 @@ ISR(TIMER1_COMPA_vect)
   sei(); // Re enable interrupts (normally disabled while inside an interrupt handler)
 #ifdef ULTIPANEL
   static int breakdown=0;
-	if((breakdown++)%100==0)
+	if((breakdown++)%10==0)
    buttons_check();
 /* [ErikDeBruijn] Perhaps it would be nice to use a piece of code like this (adapted from process_g_code), to create a nice progress bar!
       if(sdactive){

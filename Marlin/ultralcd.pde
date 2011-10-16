@@ -39,6 +39,7 @@ long previous_millis_buttons=0;
 void lcd_init()
 {
   //beep();
+  lcd.init();
   byte Degree[8] =
   {
     B01100,
@@ -243,14 +244,14 @@ void MainMenu::showStatus()
 #if LCD_HEIGHT==4
   static int oldcurrentraw=-1;
   static int oldtargetraw=-1;
-  //force_lcd_update=true;
+  force_lcd_update=true;
   if(force_lcd_update)  //initial display of content
   {
     encoderpos=feedmultiply;
-    lcd.setCursor(0,0);lcd.print("a\002123/567\001 ");
-#if defined BED_USES_THERMISTOR || defined BED_USES_AD595 
+    lcd.setCursor(0,0);lcd.print("\002123/567\001 ");
+    #if defined BED_USES_THERMISTOR || defined BED_USES_AD595 
     lcd.setCursor(10,0);lcd.print("B123/567\001 ");
-#endif
+    #endif
   }
     
 
@@ -360,7 +361,6 @@ void MainMenu::showStatus()
     messagetext[0]='\0';
   }
 #endif
-  lcd.display();
 }
 
 enum {ItemP_exit, ItemP_home, ItemP_origin, ItemP_preheat, ItemP_extrude, ItemP_disstep};
@@ -1156,18 +1156,18 @@ void MainMenu::update()
 {
   static MainStatus oldstatus=Main_Menu;  //init automatically causes foce_lcd_update=true
   static long timeoutToStatus=0;
-
+  
   if(status!=oldstatus)
   {
     //Serial.println(status);
     clear();
-    delay(1);
     force_lcd_update=true;
     encoderpos=0;
     lineoffset=0;
     
     oldstatus=status;
   }
+  force_lcd_update=true;
   if( (encoderpos!=lastencoderpos) || CLICKED)
     timeoutToStatus=millis()+STATUSTIMEOUT;
 
@@ -1207,6 +1207,7 @@ void MainMenu::update()
     status=Main_Status;
   force_lcd_update=false;
   lastencoderpos=encoderpos;
+  lcd.display();
 }
 
 

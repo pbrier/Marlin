@@ -28,7 +28,8 @@ class Screen
 public:
     Screen();
     Screen(char* baseScreen);
-  
+    void init();
+
     void clear();
     void begin(uint8_t x, uint8_t y);
     char* getCursor() const { return pCurrent; }
