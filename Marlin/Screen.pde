@@ -539,7 +539,9 @@ void handleLcd()
 
 Screen::Screen()
 {
-
+  //any init here fails. 
+  //delay(100);
+  //lcdInit();
 }
 
 void Screen::init()
