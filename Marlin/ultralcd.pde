@@ -228,23 +228,19 @@ MainMenu::MainMenu()
   status=Main_Status;
   displayStartingRow=0;
   activeline=0;
-  force_lcd_update=true;
 #ifdef ULTIPANEL
   buttons_init();
 #endif
   lcd_init();
   linechanging=false;
 }
-void clearLcd()
-{
-  
-}
+
 void MainMenu::showStatus()
 { 
 #if LCD_HEIGHT==4
   static int oldcurrentraw=-1;
   static int oldtargetraw=-1;
-  force_lcd_update=true;
+  //force_lcd_update=true;
   if(force_lcd_update)  //initial display of content
   {
     encoderpos=feedmultiply;
@@ -316,7 +312,7 @@ void MainMenu::showStatus()
    feedmultiply=curfeedmultiply;
    encoderpos=curfeedmultiply;
   }
-  if((curfeedmultiply!=oldfeedmultiply)||force_lcd_update)
+  if((curfeedmultiply!=oldfeedmultiply)||force_lcd_update||true)
   {
    oldfeedmultiply=curfeedmultiply;
    lcd.setCursor(0,2);
@@ -372,7 +368,6 @@ void MainMenu::showPrepare()
  {
    force_lcd_update=true;
    clear(); 
-   delay(1);
  }
  for(uint8_t i=lineoffset;i<lineoffset+LCD_HEIGHT;i++)
  {
@@ -507,7 +502,6 @@ void MainMenu::showControl()
  {
    force_lcd_update=true;
    clear();
-   delay(1);
  }
  for(uint8_t i=lineoffset;i<lineoffset+LCD_HEIGHT;i++)
  {
@@ -948,7 +942,6 @@ void MainMenu::showSD()
  {
    force_lcd_update=true;
    clear(); 
-   delay(1);
  }
  static uint8_t nrfiles=0;
  if(force_lcd_update)

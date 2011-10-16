@@ -432,7 +432,7 @@ ISR(TIMER4_COMPA_vect)
 //    if(running)
 //    {
 //        return;
-//    }
+//    }force_lcd_update=false
 //    running = true;
     
     handleLcd();
@@ -633,6 +633,11 @@ void Screen::printRow(int row, char *text)
 
 bool Screen::display()
 {
+    static long lasttime=0;
+    long ms=millis();
+    if(ms<lasttime+100)
+      return false;
+    lasttime=ms;
     return lcdWriteBuffer((uint8_t*)buffer);
 }
 
