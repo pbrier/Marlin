@@ -32,9 +32,7 @@ void lcd_status(const char* message)
 
 void clear()
 {
-  //lcd.setCursor(0,0);
   lcd.clear();
-  delay(1);
 }
 long previous_millis_buttons=0;
 
@@ -76,7 +74,6 @@ void lcd_init()
 
 void beep()
 {
-  return;
 #ifdef ULTIPANEL
   // [ErikDeBruijn] changed to two short beeps, more friendly
   pinMode(BEEPER,OUTPUT);
@@ -90,7 +87,6 @@ void beep()
 }
 void beepshort()
 {
-    return;
 #ifdef ULTIPANEL
   // [ErikDeBruijn] changed to two short beeps, more friendly
   pinMode(BEEPER,OUTPUT);
@@ -251,7 +247,7 @@ void MainMenu::showStatus()
   if(force_lcd_update)  //initial display of content
   {
     encoderpos=feedmultiply;
-    lcd.setCursor(0,0);lcd.print("\002123/567\001 ");
+    lcd.setCursor(0,0);lcd.print("a\002123/567\001 ");
 #if defined BED_USES_THERMISTOR || defined BED_USES_AD595 
     lcd.setCursor(10,0);lcd.print("B123/567\001 ");
 #endif

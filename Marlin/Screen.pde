@@ -555,7 +555,7 @@ void Screen::clear()
 {
     memset(buffer, ' ', LCD_ROWS * LCD_COLS);
     pCurrent = buffer; 
-    //buffer[0]='A';buffer[1]='B';
+    buffer[0]='A';buffer[1]='B';
 }
 
 void Screen::begin(uint8_t x, uint8_t y)

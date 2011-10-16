@@ -500,7 +500,7 @@ inline void checkautostart(bool x)
 
 void loop()
 {
-   DebugState();
+   //DebugState();
   if(buflen<3)
     get_command();
 	checkautostart(false);
