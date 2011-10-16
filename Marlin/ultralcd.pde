@@ -65,6 +65,7 @@ void lcd_init()
   };
   byte uplevel[8]={0x04, 0x0e, 0x1f, 0x04, 0x1c, 0x00, 0x00, 0x00};//thanks joris
   byte refresh[8]={0x00, 0x06, 0x19, 0x18, 0x03, 0x13, 0x0c, 0x00}; //thanks joris
+  lcdInit();
   lcd.begin(LCD_WIDTH, LCD_HEIGHT);
   lcd.createChar(1,Degree);
   lcd.createChar(2,Thermometer);
@@ -364,7 +365,7 @@ void MainMenu::showStatus()
     messagetext[0]='\0';
   }
 #endif
-  lcd.display();
+  //lcd.display();
 }
 
 enum {ItemP_exit, ItemP_home, ItemP_origin, ItemP_preheat, ItemP_extrude, ItemP_disstep};
@@ -1165,7 +1166,7 @@ void MainMenu::update()
   {
     //Serial.println(status);
     clear();
-    delay(1);
+    //delay(1);
     force_lcd_update=true;
     encoderpos=0;
     lineoffset=0;
@@ -1211,6 +1212,8 @@ void MainMenu::update()
     status=Main_Status;
   force_lcd_update=false;
   lastencoderpos=encoderpos;
+  
+  lcd.display();
 }
 
 

@@ -537,7 +537,7 @@ void handleLcd()
 
 Screen::Screen()
 {
-  lcdInit();
+  //lcdInit();
     clear();
 }
 
