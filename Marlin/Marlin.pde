@@ -288,8 +288,7 @@ void enquecommand(const char *cmd)
   }
 }
 
-#include "Screen.h"
-extern Screen lcd;
+
 void setup()
 { 
 	
@@ -297,47 +296,8 @@ void setup()
   Serial.print("Marlin ");
   Serial.println(version_string);
   Serial.println("start");
-  if(0)
-  {
-    Screen test;
-    
-    
-   //lcdInit();
-   //lcdPrint("Test");
-   //lcdWriteBuffer();
-    test.print("test");
-    test.display();
-   while(1){
-     test.setCursor(0,0);
-     test.print((int)millis());
-     delay(100);
-     test.display();
-  };
-  }
-  //lcd.init
-  if(0)
-  {
-    //Screen test;
-    
-    
-   //lcdInit();
-   //lcdPrint("Test");
-   //lcdWriteBuffer();
-   lcd.init();
-    lcd.print("test");
-    lcd.display();
+ 
 
-   while(1){
-     lcd.setCursor(0,0);
-     lcd.print((int)millis());
-     delay(100);
-     lcd.display();
-  };
-  
-  }
-#ifdef ULTRA_LCD
-  lcd_init();
-#endif
   for(int i = 0; i < BUFSIZE; i++){
     fromsd[i] = false;
   }
