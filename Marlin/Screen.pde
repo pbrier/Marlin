@@ -160,11 +160,11 @@ void lcdInit()
     SET_OUTPUT(LCD_DB6_PIN);
     SET_OUTPUT(LCD_DB7_PIN);
 
-    delayMicroseconds(25000);            // 15ms after 4.5V or 40ms after 2.7V
+    delayMicroseconds(50000);            // 15ms after 4.5V or 40ms after 2.7V
     lcdCommandNibble(INITIALIZE_CMD);
-    delayMicroseconds(6500);             // >4.1ms
+    delayMicroseconds(4100);             // >4.1ms
     lcdCommandNibble(INITIALIZE_CMD);
-    delayMicroseconds(250);              // > 100
+    delayMicroseconds(200);              // > 100
     lcdCommandNibble(INITIALIZE_CMD);
     
     lcdCommandNibble(SET_4BIT_CMD); // Set 4 bit interface

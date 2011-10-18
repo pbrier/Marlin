@@ -291,7 +291,7 @@ void enquecommand(const char *cmd)
 
 void setup()
 { 
-	
+	delayMicroseconds(500); //against brownout
   Serial.begin(BAUDRATE);
   Serial.print("Marlin ");
   Serial.println(version_string);
