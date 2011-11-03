@@ -8,6 +8,7 @@
   void lcd_init();
   void lcd_status(const char* message);
   void beep();
+  void buttons_check();
   #define LCDSTATUSRIGHT
 
   #define LCD_UPDATE_INTERVAL 100
@@ -55,7 +56,7 @@
   
   #define CLICKED (buttons&EN_C)
   #define BLOCK {blocking=millis()+blocktime;}
-  #define CARDINSERTED (digitalRead(SDCARDDETECT)==0)
+  #define CARDINSERTED (READ(SDCARDDETECT)==0)
   
 #else
   //arduino pin witch triggers an piezzo beeper

@@ -1,7 +1,7 @@
 #ifndef THERMISTORTABLES_H_
 #define THERMISTORTABLES_H_
 
-#define OVERSAMPLENR 1
+#define OVERSAMPLENR 16
 #if (THERMISTORHEATER == 1) || (THERMISTORBED == 1) //100k bed thermistor
 
 

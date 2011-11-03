@@ -60,8 +60,8 @@
 
 #define HEATER_0_PIN        6
 #define TEMP_0_PIN          0    // MUST USE ANALOG INPUT NUMBERING NOT DIGITAL OUTPUT NUMBERING!!!!!!!!!
-
-
+#define HEATER_1_PIN        -1
+#define HEATER_2_PIN        -1
 #endif
 
 
@@ -133,7 +133,8 @@
 
 #define HEATER_0_PIN       14
 #define TEMP_0_PIN          4 //D27   // MUST USE ANALOG INPUT NUMBERING NOT DIGITAL OUTPUT NUMBERING!!!!!!!!!
-
+#define HEATER_1_PIN        -1
+#define HEATER_2_PIN        -1
 /*  Unused (1) (2) (3) 4 5 6 7 8 9 10 11 12 13 (14) (15) (16) 17 (18) (19) (20) (21) (22) (23) 24 (25) (26) (27) 28 (29) (30) (31)  */
 
 
@@ -194,7 +195,8 @@
 
 #define HEATER_0_PIN    -1
 #define TEMP_0_PIN      -1    // MUST USE ANALOG INPUT NUMBERING NOT DIGITAL OUTPUT NUMBERING!!!!!!!!!
-
+#define HEATER_1_PIN        -1
+#define HEATER_2_PIN        -1
 
 
 
@@ -255,6 +257,7 @@
 
 #define HEATER_0_PIN       10
 #define HEATER_1_PIN       8
+#define HEATER_2_PIN        -1
 #define TEMP_0_PIN         13   // ANALOG NUMBERING
 #define TEMP_1_PIN         14   // ANALOG NUMBERING
 
@@ -301,7 +304,7 @@
   #define HEATER_1_PIN      8    // RAMPS 1.1
   #define FAN_PIN           9    // RAMPS 1.1
 #endif
-
+#define HEATER_2_PIN        -1
 #define TEMP_0_PIN          2    // MUST USE ANALOG INPUT NUMBERING NOT DIGITAL OUTPUT NUMBERING!!!!!!!!!
 #define TEMP_1_PIN          1    // MUST USE ANALOG INPUT NUMBERING NOT DIGITAL OUTPUT NUMBERING!!!!!!!!!
 #endif
@@ -361,7 +364,8 @@
 
 #define HEATER_0_PIN        6
 #define TEMP_0_PIN          0    // MUST USE ANALOG INPUT NUMBERING NOT DIGITAL OUTPUT NUMBERING!!!!!!!!!
-
+#define HEATER_1_PIN        -1
+#define HEATER_2_PIN        -1
 
 #endif
 
@@ -404,12 +408,13 @@
     #define TEMP_0_PIN      5     //changed @ rkoeppl 20110410
     #define HEATER_0_PIN    14    //changed @ rkoeppl 20110410
     #define HEATER_1_PIN    -1    //changed @ rkoeppl 20110410
-    
+    #define HEATER_2_PIN        -1
     
     #define SDPOWER          -1
     #define SDSS          17
     #define LED_PIN         -1    //changed @ rkoeppl 20110410
     #define TEMP_1_PIN      -1    //changed @ rkoeppl 20110410
+    #define TEMP_2_PIN      -1
     #define FAN_PIN         -1    //changed @ rkoeppl 20110410
     #define PS_ON_PIN       -1    //changed @ rkoeppl 20110410
     //our pin for debugging.
@@ -484,7 +489,7 @@
 #define TEMP_1_PIN          6   // MUST USE ANALOG INPUT NUMBERING NOT DIGITAL OUTPUT NUMBERING!!!!!!!!! (pin 34 bed)
 #define SDPOWER          -1
 #define SDSS          31
-
+#define HEATER_2_PIN        -1
 
 
 
@@ -538,6 +543,8 @@
 #define EXTRUDER_1_ENABLE_PIN 51
 #define EXTRUDER_1_HEATER_PIN 3
 #define EXTRUDER_1_TEMPERATURE_PIN 10 
+#define HEATER_2_PIN 51
+#define TEMP_2_PIN 3
 
 
 

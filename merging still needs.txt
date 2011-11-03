@@ -1,0 +1,13 @@
+still needed to finish the merge, before testin!
+
+ manage_heater
+ ISR
+ movement planner
+
+all other  stuff in new files
+
+remove traveling at maxpseed
+remove Simplelcd
+
+block_t
+pid_dt ->0.1

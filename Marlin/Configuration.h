@@ -1,12 +1,15 @@
-
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
+
+//#define DEBUG_STEPS
 
 // BASIC SETTINGS: select your board type, thermistor type, axis scaling, and endstop configuration
 
 //// The following define selects which electronics board you have. Please choose the one that matches your setup
 // Gen6 = 5, 
+// Ultimaker = 7,
 #define MOTHERBOARD 7
+//#define MOTHERBOARD 5
 
 //// Thermistor settings:
 // 1 is 100k thermistor
@@ -16,7 +19,6 @@
 // Select one of these only to define how the nozzle temp is read.
 //#define HEATER_USES_THERMISTOR
 #define HEATER_USES_AD595
-//#define HEATER_USES_MAX6675
 
 // Select one of these only to define how the bed temp is read.
 //#define BED_USES_THERMISTOR
@@ -36,6 +38,7 @@ const bool ENDSTOPS_INVERTING = true; // set to true to invert the logic of the 
 
 // This determines the communication speed of the printer
 #define BAUDRATE 115200
+//#define BAUDRATE 230400
 
 // Comment out (using // at the start of the line) to disable SD support:
 
@@ -43,9 +46,9 @@ const bool ENDSTOPS_INVERTING = true; // set to true to invert the logic of the 
 #define LCD_WIDTH 16
 #define LCD_HEIGHT 2
 
-//#define ULTIPANEL
+#define ULTIPANEL
 #ifdef ULTIPANEL
- #define NEWPANEL  //enable this if you have a click-encoder panel
+ //#define NEWPANEL  //enable this if you have a click-encoder panel
  #define SDSUPPORT
  #define ULTRA_LCD
  #define LCD_WIDTH 20
@@ -53,7 +56,7 @@ const bool ENDSTOPS_INVERTING = true; // set to true to invert the logic of the 
 #endif
 
 
-#define SDSUPPORT // Enable SD Card Support in Hardware Console
+//#define SDSUPPORT // Enable SD Card Support in Hardware Console
 
 
 
@@ -88,7 +91,7 @@ const int dropsegments=5; //everything with this number of steps  will be ignore
 #define Z_HOME_DIR -1
 
 #define min_software_endstops false //If true, axis won't move to coordinates less than zero.
-#define max_software_endstops true  //If true, axis won't move to coordinates greater than the defined lengths below.
+#define max_software_endstops false  //If true, axis won't move to coordinates greater than the defined lengths below.
 #define X_MAX_LENGTH 210
 #define Y_MAX_LENGTH 210
 #define Z_MAX_LENGTH 210
@@ -96,13 +99,14 @@ const int dropsegments=5; //everything with this number of steps  will be ignore
 //// MOVEMENT SETTINGS
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
 //note: on bernhards ultimaker 200 200 12 are working well.
-float homing_feedrate[] = {70*60, 70*60, 12*60, 0};  // set the homing speeds
+#define HOMING_FEEDRATE {50*60, 50*60, 12*60, 0}  // set the homing speeds
 //the followint checks if an extrusion is existent in the move. if _not_, the speed of the move is set to the maximum speed. 
 //!!!!!!Use only if you know that your printer works at the maximum declared speeds.
 // works around the skeinforge cool-bug. There all moves are slowed to have a minimum layer time. However slow travel moves= ooze
 #define TRAVELING_AT_MAXSPEED  
-bool axis_relative_modes[] = {false, false, false, false};
+#define AXIS_RELATIVE_MODES {false, false, false, false}
 
+#define MAX_STEP_FREQUENCY 40000 // Max step frequency for Ultimaker (5000 pps / half step)
 
 // default settings 
 
@@ -110,16 +114,17 @@ bool axis_relative_modes[] = {false, false, false, false};
 #define DEFAULT_MAX_FEEDRATE          {160*60, 160*60, 10*60, 500000}        
 #define DEFAULT_MAX_ACCELERATION      {9000,9000,150,10000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
 
-#define DEFAULT_ACCELERATION          4600    // X, Y, Z and E max acceleration in mm/s^2 for printing moves 
+#define DEFAULT_ACCELERATION          3000    // X, Y, Z and E max acceleration in mm/s^2 for printing moves 
 #define DEFAULT_RETRACT_ACCELERATION  7000   // X, Y, Z and E max acceleration in mm/s^2 for r retracts
 
-#define DEFAULT_MINIMUMFEEDRATE       0*60      // minimum feedrate
-#define DEFAULT_MINTRAVELFEEDRATE     140*60
+#define DEFAULT_MINIMUMFEEDRATE       10     // minimum feedrate
+#define DEFAULT_MINTRAVELFEEDRATE     10
 
 // minimum time in microseconds that a movement needs to take if the buffer is emptied.   Increase this number if you see blobs while printing high speed & high detail.  It will slowdown on the detailed stuff.
 #define DEFAULT_MINSEGMENTTIME        20000
 #define DEFAULT_XYJERK                30.0*60    
 #define DEFAULT_ZJERK                 10.0*60
+
 
 // The watchdog waits for the watchperiod in milliseconds whenever an M104 or M109 increases the target temperature
 //this enables the watchdog interrupt.
@@ -148,22 +153,19 @@ bool axis_relative_modes[] = {false, false, false, false};
 
 /// PID settings:
 // Uncomment the following line to enable PID support.
-#define SMOOTHING
-#define SMOOTHFACTOR 5.0
-float current_raw_average=0;
+//#define SMOOTHING
+//#define SMOOTHFACTOR 5.0
+//float current_raw_average=0;
 
-
-#define GRACETEMP 0  //temperature which already counts as reached for M109
 #define PIDTEMP
-
 #ifdef PIDTEMP
-  //#define PID_DEBUG 1 // Sends debug data to the serial port. 
-  //#define PID_OPENLOOP 1 // Puts PID in open loop. M104 sets the output power in %
-  #define PID_MAX 255 // limits current to nozzle
-  #define PID_INTEGRAL_DRIVE_MAX 255
+//#define PID_DEBUG // Sends debug data to the serial port. 
+//#define PID_OPENLOOP 1 // Puts PID in open loop. M104 sets the output power in %
+#define PID_MAX 255 // limits current to nozzle
+#define PID_INTEGRAL_DRIVE_MAX 255
   #define PID_dT 0.05
  //machine with red silicon: 1950:45 second ; with fan fully blowin 3000:47
- 
+
   #define PID_CRITIAL_GAIN 3000
   #define PID_SWING_AT_CRITIAL 45 //seconds
   #define PIDIADD 5
@@ -174,10 +176,10 @@ float current_raw_average=0;
   float Kd = Kp*PID_SWING_AT_CRITIAL/8./PID_dT;  
 */
   //PI according to Ziegler-Nichols method
-  float Kp = PID_CRITIAL_GAIN/2.2; 
-  float Ki =1.2*Kp/PID_SWING_AT_CRITIAL*PID_dT;  
-  float Kd = 0;
-  float Kc = 9; //heatingpower=Kc*(e_speed)
+  #define  DEFAULT_Kp (PID_CRITIAL_GAIN/2.2) 
+  #define  DEFAULT_Ki (1.2*Kp/PID_SWING_AT_CRITIAL*PID_dT)
+  #define  DEFAULT_Kd (0)
+  #define  DEFAULT_Kc (9) //heatingpower=Kc*(e_speed)
 #endif // PIDTEMP
 
 // extruder advance constant (s2/mm3)
@@ -198,5 +200,16 @@ float current_raw_average=0;
 #define STEPS_PER_CUBIC_MM_E (axis_steps_per_unit[E_AXIS]/ EXTRUTION_AREA)
 
 #endif // ADVANCE
+
+#if defined SDSUPPORT
+// The number of linear motions that can be in the plan at any give time.  
+  #define BLOCK_BUFFER_SIZE 16   // SD,LCD,Buttons take more memory, block buffer needs to be smaller
+#else
+  #define BLOCK_BUFFER_SIZE 16 // maximize block buffer
+#endif
+
+#ifdef SIMPLE_LCD
+  #define BLOCK_BUFFER_SIZE 16 // A little less buffer for just a simple LCD
+#endif
 
 #endif
