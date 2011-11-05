@@ -174,10 +174,11 @@ float current_raw_average=0;
   float Kd = Kp*PID_SWING_AT_CRITIAL/8./PID_dT;  
 */
   //PI according to Ziegler-Nichols method
-  float Kp = PID_CRITIAL_GAIN/2.2; 
-  float Ki =1.2*Kp/PID_SWING_AT_CRITIAL*PID_dT;  
+  float Kp = PID_CRITIAL_GAIN/4; // 750
+  float Ki =1.2*Kp/PID_SWING_AT_CRITIAL*PID_dT;   // 
   float Kd = 0;
-  float Kc = 9; //heatingpower=Kc*(e_speed)
+  float Kc = 5; // heatingpower=Kc*(e_speed)
+  float Kff = 0.1; // heating power = kff * tset
 #endif // PIDTEMP
 
 // extruder advance constant (s2/mm3)

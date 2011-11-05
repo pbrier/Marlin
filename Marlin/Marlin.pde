@@ -614,7 +614,11 @@ inline void get_command()
             if(savetosd)
               break;
 #endif //SDSUPPORT
-            Serial.println("ok"); 
+            Serial.print("ok T:");
+            Serial.print(analog2temp(current_raw_average)); 
+            Serial.print(" PWM:");
+            Serial.print(HeaterPower); 
+            Serial.println(""); 
             break;
           default:
             break;
@@ -1232,7 +1236,9 @@ void ClearToSend()
   if(fromsd[bufindr])
     return;
 #endif //SDSUPPORT
-  Serial.println("ok"); 
+
+ Serial.println("ok"); 
+ 
 }
 
 inline void get_coordinates()
@@ -1480,7 +1486,7 @@ void manage_heater()
       dTerm = (Kd * (current_raw_average - temp_dState)) / 100.0;
       temp_dState = current_raw_average;
       pTerm+=Kc*current_block->speed_e; //additional heating if extrusion speed is high
-     
+      pTerm += Kff * target_raw;
       HeaterPower= constrain(pTerm + iTerm - dTerm, 0, PID_MAX);      
       }
       else  HeaterPower= constrain(-Kp,0, 255);      // 
@@ -1533,40 +1539,15 @@ void manage_heater()
 // For a thermistor, it uses the RepRap thermistor temp table.
 // This is needed because PID in hydra firmware hovers around a given analog value, not a temp value.
 // This function is derived from inversing the logic from a portion of getTemperature() in FiveD RepRap firmware.
-float temp2analog(int celsius) {
-  #ifdef HEATER_USES_THERMISTOR
-    int raw = 0;
-    byte i;
-    
-    for (i=1; i<NUMTEMPS; i++)
-    {
-      if (temptable[i][1] < celsius)
-      {
-        raw = temptable[i-1][0] + 
-          (celsius - temptable[i-1][1]) * 
-          (temptable[i][0] - temptable[i-1][0]) /
-          (temptable[i][1] - temptable[i-1][1]);
-      
-        break;
-      }
-    }
-
-    // Overflow: Set to last value in the table
-    if (i == NUMTEMPS) raw = temptable[i-1][0];
-
-    return 1023 - raw;
-  #elif defined HEATER_USES_AD595
-    return celsius * (1024.0 / (5.0 * 100.0) );
-  #elif defined HEATER_USES_MAX6675
-    return celsius * 4.0;
-  #endif
+int temp2analog(float celsius) {
+    return (int)(0.5 + (celsius * 1024.0 / (5.0 * 100.0) ));
 }
 
 // Takes bed temperature value as input and returns corresponding raw value. 
 // For a thermistor, it uses the RepRap thermistor temp table.
 // This is needed because PID in hydra firmware hovers around a given analog value, not a temp value.
 // This function is derived from inversing the logic from a portion of getTemperature() in FiveD RepRap firmware.
-float temp2analogBed(int celsius) {
+int temp2analogBed(float celsius) {
   #ifdef BED_USES_THERMISTOR
 
     int raw = 0;
@@ -1590,7 +1571,7 @@ float temp2analogBed(int celsius) {
 
     return 1023 - raw;
   #elif defined BED_USES_AD595
-    return celsius * (1024.0 / (5.0 * 100.0) );
+    return (int)(celsius * 1024.0 / (5.0 * 100.0) );
   #endif
 }
 
