@@ -24,6 +24,12 @@ around if(feed_rate<minimumfeedrate) this only should be done if it is not a pur
 ~line 507 tmp_aceleration. not sure whats going on, but a lot changed.
 
 
+* stepper.cpp
+~214: if (busy) should be a echoln, maybe
+~331: great, The Z_M_PIN checks are in :)
+
+*temperature.cpp
+
 ----
 
 still needed to finish the merge, before testin!
@@ -36,6 +42,8 @@ TODO:
 
 remove traveling at maxpseed
 remove Simplelcd
+
+remove DEBUG_STEPS?
 
 block_t
 pid_dt ->0.1  whats the changes to the PID, checking needed
