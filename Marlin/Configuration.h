@@ -205,8 +205,9 @@ const int dropsegments=5; //everything with this number of steps  will be ignore
 
 #endif // ADVANCE
 
+// THE BLOCK_BUFFER_SIZE NEEDS TO BE A POWER OF 2, e.g. 8,16,32 
 #if defined SDSUPPORT
-// The number of linear motions that can be in the plan at any give time.  
+  // The number of linear motions that can be in the plan at any give time.  
   #define BLOCK_BUFFER_SIZE 16   // SD,LCD,Buttons take more memory, block buffer needs to be smaller
 #else
   #define BLOCK_BUFFER_SIZE 16 // maximize block buffer
