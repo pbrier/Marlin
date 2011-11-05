@@ -43,8 +43,7 @@ const bool ENDSTOPS_INVERTING = true; // set to true to invert the logic of the 
 // Comment out (using // at the start of the line) to disable SD support:
 
 // #define ULTRA_LCD  //any lcd 
-#define LCD_WIDTH 16
-#define LCD_HEIGHT 2
+
 
 #define ULTIPANEL
 #ifdef ULTIPANEL
@@ -52,7 +51,12 @@ const bool ENDSTOPS_INVERTING = true; // set to true to invert the logic of the 
  #define SDSUPPORT
  #define ULTRA_LCD
  #define LCD_WIDTH 20
-#define LCD_HEIGHT 4
+ #define LCD_HEIGHT 4
+#else //no panel but just lcd 
+  #ifdef ULTRA_LCD
+    #define LCD_WIDTH 16
+    #define LCD_HEIGHT 2
+  #endif
 #endif
 
 

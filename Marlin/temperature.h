@@ -21,8 +21,7 @@
 #ifndef temperature_h
 #define temperature_h 
 
-void manage_inactivity(byte debug);
-
+#include "Marlin.h"
 void tp_init();
 void manage_heater();
 //int temp2analogu(int celsius, const short table[][2], int numtemps);

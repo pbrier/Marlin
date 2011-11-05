@@ -57,7 +57,7 @@ void ClearToSend();
 
 void get_coordinates();
 void prepare_move();
-void kill(byte debug);
+void kill();
 
 //void check_axes_activity();
 //void plan_init();
@@ -78,6 +78,5 @@ void enquecommand(const char *cmd);
 extern float homing_feedrate[];
 extern bool axis_relative_modes[];
 
-void manage_inactivity(byte debug);
 void wd_reset() ;
 #endif

@@ -25,7 +25,7 @@
     http://reprap.org/pipermail/reprap-dev/2011-May/003323.html
  */
 
-#include <EEPROM.h>
+#include "EEPROMwrite.h"
 #include "fastio.h"
 #include "Configuration.h"
 #include "pins.h"
@@ -165,7 +165,7 @@ bool sdmode = false;
 bool sdactive = false;
 bool savetosd = false;
 int16_t n;
-long autostart_atmillis=0;
+unsigned long autostart_atmillis=0;
 
 void initsd(){
   sdactive = false;
@@ -287,18 +287,18 @@ void checkautostart(bool force)
 	static int lastnr=0;
 	char autoname[30];
 	sprintf(autoname,"auto%i.g",lastnr);
-	for(int i=0;i<strlen(autoname);i++)
+	for(int i=0;i<(int)strlen(autoname);i++)
 		autoname[i]=tolower(autoname[i]);
 	dir_t p;
 
 	root.rewind();
-	char filename[11];
-	int cnt=0;
+	//char filename[11];
+	//int cnt=0;
 
 	bool found=false;
 	while (root.readDir(p) > 0) 
 	{
-		for(int i=0;i<strlen((char*)p.name);i++)
+		for(int i=0;i<(int)strlen((char*)p.name);i++)
 			p.name[i]=tolower(p.name[i]);
 		//Serial.print((char*)p.name);
 		//Serial.print(" ");
