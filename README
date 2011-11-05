@@ -1,3 +1,13 @@
+This is a clone of the Marlin Firmware from Berhard Kubicek.
+It's main purpose is to investigate some technical concepts 
+in the firmware. For developers only.
+
+*** DO NOT USE THIS VERSION ON YOUR MACHINE ***
+
+*** Use the original version from Erik van der Zalm, or Berhard Kubicek (Both on Github) ***
+
+
+
 This RepRap firmware is a mashup between Sprinter, grbl and many original parts.
  (https://github.com/kliment/Sprinter)
  (https://github.com/simen/grbl/tree)
